@@ -25,7 +25,7 @@ export const ENV_NEEDED: Record<OAuthPlatform, string[]> = {
   discord: ["DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET"],
 };
 
-export const THREADS_SCOPES = ["threads_basic", "threads_content_publish", "threads_manage_replies", "threads_read_replies", "threads_manage_insights"];
+export const THREADS_SCOPES = ["threads_basic", "threads_content_publish", "threads_manage_replies", "threads_read_replies"];
 export const PINTEREST_SCOPES = ["boards:read", "boards:write", "pins:read", "pins:write", "user_accounts:read"];
 /** Trial access apps may only write to Pinterest's sandbox (Pins visible to the creator only). Set PINTEREST_SANDBOX=1 until Standard access is approved. */
 export const pinterestSandbox = () => /^(1|true|yes)$/i.test(process.env.PINTEREST_SANDBOX || "");
