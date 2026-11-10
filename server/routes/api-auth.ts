@@ -562,30 +562,9 @@ authRouter.get("/linkedin/callback", async (req, res) => {
  * 3. Server-to-Server Webhook Decoders & Signed Requests
  */
 
+/** Length-safe signed_request check (a forged or short signature is a 400, never a crash) */
 function decodeMetaSignedRequest(signedRequest: string, appSecret: string): any {
-  if (!signedRequest) return null;
-  const parts = signedRequest.split(".");
-  if (parts.length !== 2) return null;
-
-  const [encodedSig, payload] = parts;
-  
-  // base64url decode signature
-  const sig = Buffer.from(encodedSig.replace(/-/g, "+").replace(/_/g, "/"), "base64");
-  
-  // verify signature with app secret
-  const expectedSig = crypto
-    .createHmac("sha256", appSecret)
-    .update(payload)
-    .digest();
-
-  if (!crypto.timingSafeEqual(sig, expectedSig)) {
-    console.warn("[Webhook] Meta signature validation mismatch.");
-    return null;
-  }
-
-  // base64url decode payload
-  const decodedPayload = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-  return JSON.parse(decodedPayload);
+  return parseMetaSignedRequest(signedRequest, appSecret);
 }
 
 // Meta Instagram Deauthorize Webhook

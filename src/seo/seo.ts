@@ -66,7 +66,7 @@ const BASE: SeoRoute[] = [
     kind: 'dev',
   },
   { path: '/privacy-policy', title: 'Privacy Policy | ZieAds', description: 'How ZieAds collects, uses, stores and deletes data from Instagram, Facebook, TikTok, LinkedIn, Google, YouTube and ads platforms.', priority: 0.3, changefreq: 'yearly', crumbs: ['Privacy Policy'], kind: 'legal' },
-  { path: '/terms', title: 'Terms of Service | ZieAds', description: 'The terms for using ZieAds, the social media tool from PT. Banko Indonesia Technology.', priority: 0.3, changefreq: 'yearly', crumbs: ['Terms of Service'], kind: 'legal' },
+  { path: '/terms', title: 'Terms of Service | ZieAds', description: 'The terms for using ZieAds, the social media tool from PT. Bantu Indonesia Technology.', priority: 0.3, changefreq: 'yearly', crumbs: ['Terms of Service'], kind: 'legal' },
   { path: '/data-deletion', title: 'Data deletion | ZieAds', description: 'How to delete your ZieAds data and disconnect Instagram, Facebook, TikTok and LinkedIn, and how to check the status of a deletion request.', priority: 0.2, changefreq: 'yearly', crumbs: ['Data deletion'], kind: 'legal' },
 ];
 
@@ -95,7 +95,7 @@ const ORG = {
   '@type': 'Organization',
   '@id': `${SITE}/#org`,
   name: SITE_NAME,
-  legalName: 'PT. Banko Indonesia Technology',
+  legalName: 'PT. Bantu Indonesia Technology',
   url: SITE,
   logo: `${SITE}/icon-512.png`,
   email: 'privacy@zieads.com',

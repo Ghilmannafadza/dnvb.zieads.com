@@ -93,7 +93,7 @@ const llms = `# ZieAds
 > ZieAds is a social media tool that tells you what to do next. It schedules and publishes to Instagram, Facebook, TikTok, LinkedIn, Threads, YouTube, Pinterest, Bluesky, Mastodon, Telegram and Discord, puts comments and messages in one inbox, reports organic and ads results, and tracks competitors. Every morning it turns the numbers into three ranked actions, and Zie, the AI agent, prepares posts and replies that wait for the user's approval. It is free for one brand; paid plans are priced per brand, not per seat. ZieAds also works inside Claude and ChatGPT through its MCP server, and has a REST API.
 
 Key facts:
-- Made by PT. Banko Indonesia Technology. Website: ${SITE}
+- Made by PT. Bantu Indonesia Technology. Website: ${SITE}
 - Plans: ${pricingPlans.map((p) => `${p.tier} ${p.price}${p.period === 'forever' ? '' : ' a month'}`).join(', ')}. Brands per plan: Free 1, Starter 1, Pro 3, Agency 10, each brand in its own workspace.
 - Nothing is posted, sent or spent without the user's approval. Ads accounts are read only.
 - Official platform APIs only; no password sharing and no scraping of the user's accounts.
