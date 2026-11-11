@@ -14,6 +14,7 @@ import crypto from "crypto";
 import { supabaseAdmin } from "../supabaseServer.js";
 import { getDecryptedToken } from "../utils/tokenHelper.js";
 import { publishPost as igPublishSingle } from "../utils/instagramApi.js";
+import { prepareImage, INSTAGRAM_IMAGE } from "./mediaPrep.js";
 import { publishToPage, commentOnPost, explainGraphError, GraphError } from "../utils/facebookApi.js";
 import { getFacebookPage } from "../facebook/connect.js";
 import { validatePost, hasErrors, ValidatePlatform } from "../../src/lib/postValidation.js";
@@ -75,13 +76,13 @@ async function publishInstagram(post: any) {
   let mediaId: string;
   if (urls.length === 1) {
     const video = post.media_type === "video" || isVideoUrl(urls[0]);
-    const r = await igPublishSingle(conn.token, conn.platformUserId, video ? { video_url: urls[0], media_type: "REELS", caption } : { image_url: urls[0], caption });
+    const r = await igPublishSingle(conn.token, conn.platformUserId, video ? { video_url: urls[0], media_type: "REELS", caption } : { image_url: await prepareImage(urls[0], INSTAGRAM_IMAGE, "Instagram"), caption });
     mediaId = r.mediaId;
   } else {
     const children: string[] = [];
     for (const u of urls.slice(0, 10)) {
       const video = isVideoUrl(u);
-      const c = await igGraph(conn.token, `${conn.platformUserId}/media`, video ? { media_type: "VIDEO", video_url: u, is_carousel_item: "true" } : { image_url: u, is_carousel_item: "true" });
+      const c = await igGraph(conn.token, `${conn.platformUserId}/media`, video ? { media_type: "VIDEO", video_url: u, is_carousel_item: "true" } : { image_url: await prepareImage(u, INSTAGRAM_IMAGE, "Instagram"), is_carousel_item: "true" });
       if (video) await waitForContainer(conn.token, c.id);
       children.push(c.id);
     }
@@ -261,20 +262,41 @@ export async function publishScheduledPost(postId: string, opts: { allowStatuses
   }
 }
 
-/** Publish everything that is due. Keeps inside a serverless time budget. */
-export async function runDuePosts(budgetMs = 45000): Promise<{ checked: number; results: PublishResult[] }> {
+/**
+  Posts left in "publishing" by a run that was killed mid-way (function timeout, deploy) go back to the
+  queue after 10 minutes. A post that already has a platform id is marked published instead, never sent twice.
+*/
+export async function recoverStuckPosts(userId?: string): Promise<number> {
+  const cutoff = new Date(Date.now() - 10 * 60000).toISOString();
+  let q = supabaseAdmin.from("scheduled_posts").select("id, platform_media_id, retry_count").eq("status", "publishing").lt("updated_at", cutoff).limit(50);
+  if (userId) q = q.eq("user_id", userId);
+  const { data } = await q;
+  for (const p of data || []) {
+    const patch: any = p.platform_media_id
+      ? { status: "published" }
+      : { status: "scheduled", retry_count: (p.retry_count || 0) + 1, error_message: "The last run stopped before it finished. Trying again.", scheduled_for: new Date().toISOString() };
+    await supabaseAdmin.from("scheduled_posts").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", p.id).eq("status", "publishing");
+  }
+  return (data || []).length;
+}
+
+/** Publish everything that is due (optionally for one user). Keeps inside a serverless time budget. */
+export async function runDuePosts(budgetMs = 45000, userId?: string): Promise<{ checked: number; recovered: number; results: PublishResult[] }> {
   const started = Date.now();
-  const { data } = await supabaseAdmin
+  const recovered = await recoverStuckPosts(userId).catch(() => 0);
+  let q = supabaseAdmin
     .from("scheduled_posts")
     .select("id")
     .eq("status", "scheduled")
     .lte("scheduled_for", new Date().toISOString())
     .order("scheduled_for", { ascending: true })
     .limit(25);
+  if (userId) q = q.eq("user_id", userId);
+  const { data } = await q;
   const results: PublishResult[] = [];
   for (const row of data || []) {
     if (Date.now() - started > budgetMs) break;
     results.push(await publishScheduledPost(row.id));
   }
-  return { checked: (data || []).length, results };
+  return { checked: (data || []).length, recovered, results };
 }

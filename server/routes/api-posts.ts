@@ -16,7 +16,7 @@
 import { Router } from "express";
 import { getUserIdFromRequest, supabaseAdmin } from "../supabaseServer.js";
 import { submitPosts, SubmitInput } from "../publish/submit.js";
-import { publishScheduledPost } from "../publish/publisher.js";
+import { publishScheduledPost, runDuePosts } from "../publish/publisher.js";
 import { logActivity } from "../activity.js";
 import { parseBulkCsv } from "../publish/bulkCsv.js";
 import { getDecryptedToken } from "../utils/tokenHelper.js";
@@ -88,6 +88,20 @@ postsRouter.get("/posts/calendar", requireAuth, async (req: any, res) => {
 postsRouter.get("/posts/best-times", requireAuth, async (req: any, res) => {
   const tz = await userTimeZone(req.userId);
   res.json({ success: true, timezone: tz, ...(await bestTimesFor(req.userId, tz, req.query.platform ? String(req.query.platform) : undefined)) });
+});
+
+/*
+  Safety net for the scheduler: the dashboard calls this while it is open, and it publishes this
+  account's own posts that are already due. The real scheduler is the every-minute job (Supabase
+  pg_cron calling /api/v3/cron/publish-scheduled); this only matters if that job is not running.
+*/
+const lastTick = new Map<string, number>();
+postsRouter.post("/posts/publish-due", requireAuth, async (req: any, res) => {
+  const now = Date.now();
+  if (now - (lastTick.get(req.userId) || 0) < 60000) return res.json({ success: true, skipped: "too soon" });
+  lastTick.set(req.userId, now);
+  const out = await runDuePosts(20000, req.userId);
+  res.json({ success: true, checked: out.checked, recovered: out.recovered, results: out.results.map((r) => ({ status: r.status, postId: r.postId, reason: r.reason })) });
 });
 
 postsRouter.post("/posts/submit", requireAuth, async (req: any, res) => {

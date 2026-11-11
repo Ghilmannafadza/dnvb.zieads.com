@@ -6,6 +6,7 @@
 */
 import { PublishError, NeedsAction } from "../publish/errors.js";
 import sharp from "sharp";
+import { prepareImage, THREADS_IMAGE } from "../publish/mediaPrep.js";
 import { loadConnection, expiringSoon, LoadedConnection, updateMetadata } from "./store.js";
 import { refresh, pinterestApi, pinterestSandbox } from "./oauth.js";
 import { bskySession, tg, telegramToken, CredentialError } from "./credentials.js";
@@ -147,14 +148,14 @@ export async function publishThreads(post: any) {
   let creation: string;
   if (urls.length <= 1) {
     const u = urls[0];
-    const params: Record<string, string> = !u ? { media_type: "TEXT", text } : isVideo(u, post.media_type) ? { media_type: "VIDEO", video_url: u, text } : { media_type: "IMAGE", image_url: u, text };
+    const params: Record<string, string> = !u ? { media_type: "TEXT", text } : isVideo(u, post.media_type) ? { media_type: "VIDEO", video_url: u, text } : { media_type: "IMAGE", image_url: await prepareImage(u, THREADS_IMAGE, "Threads"), text };
     const r = await threadsApi(c.token, `${uid}/threads`, params);
     creation = r.id;
     if (u) await threadsReady(c.token, creation);
   } else {
     const children: string[] = [];
     for (const u of urls.slice(0, 20)) {
-      const r = await threadsApi(c.token, `${uid}/threads`, isVideo(u) ? { media_type: "VIDEO", video_url: u, is_carousel_item: "true" } : { media_type: "IMAGE", image_url: u, is_carousel_item: "true" });
+      const r = await threadsApi(c.token, `${uid}/threads`, isVideo(u) ? { media_type: "VIDEO", video_url: u, is_carousel_item: "true" } : { media_type: "IMAGE", image_url: await prepareImage(u, THREADS_IMAGE, "Threads"), is_carousel_item: "true" });
       children.push(r.id);
     }
     for (const id of children) await threadsReady(c.token, id);

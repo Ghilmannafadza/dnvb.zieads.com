@@ -75,6 +75,24 @@ export default function V3Layout({ children }: Props) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Scheduler safety net: while the dashboard is open, publish this account's posts that are already due.
+  // The every-minute server job does the real work; this covers the time it is not running.
+  useEffect(() => {
+    if (demo.isActive) return;
+    const tick = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const token = (await supabase.auth.getSession()).data?.session?.access_token;
+        if (token) await fetch('/api/v3/posts/publish-due', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      } catch {
+        /* offline or signed out: the server job still runs */
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 5 * 60_000);
+    return () => clearInterval(iv);
+  }, [demo.isActive]);
+
   useEffect(() => {
     // Check onboarding status
     const checkOnboarding = async () => {
