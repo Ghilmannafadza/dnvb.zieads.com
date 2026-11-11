@@ -1,5 +1,6 @@
 import { useState, useEffect, ReactNode, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import ReviewCaption from './components/ReviewCaption';
 import LandingPage from './pages/LandingPage';
 const QuickScanResult = lazy(() => import('./pages/QuickScanResult'));
 import AuthPage from './pages/AuthPage';
@@ -128,6 +129,7 @@ export default function App() {
     <Router>
       <TabTitle />
       <SeoHead />
+      <ReviewCaption />
       <RouteBoundary>
       {/* App pages load on demand so the public pages stay light */}
       <Suspense fallback={<div style={{ minHeight: '100vh', background: '#fff' }} aria-busy="true" />}>
