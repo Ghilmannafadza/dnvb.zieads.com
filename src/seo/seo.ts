@@ -8,8 +8,8 @@ import { DOCS } from '../pages/docs/pages';
 import { VS_PAGES } from '../pages/landing/compare';
 import { faqItems, pricingPlans } from '../pages/landing/data';
 
-export const SITE = 'https://www.zieads.com';
-export const SITE_NAME = 'ZieAds';
+export const SITE = 'https://dnvb.zieads.com';
+export const SITE_NAME = 'dnvb TikTok Hub';
 export const OG_IMAGE = `${SITE}/og-image.png`;
 
 export interface SeoRoute {
@@ -23,9 +23,9 @@ export interface SeoRoute {
   kind?: 'home' | 'pricing' | 'features' | 'vs' | 'docs' | 'dev' | 'legal';
 }
 
-const HOME_TITLE = 'ZieAds: The social media tool that tells you what to do next';
+const HOME_TITLE = 'dnvb TikTok Hub: kelola 100+ akun TikTok dari satu dashboard';
 const HOME_DESC =
-  'Schedule, reply and report across Instagram, Facebook, TikTok, LinkedIn, Threads, YouTube and more. Every morning ZieAds turns your numbers into 3 actions and does them when you approve. Free for one brand.';
+  'Hubungkan 100+ akun TikTok dalam satu workspace. Jadwal konten massal, connect link untuk kreator, analytics gabungan dan AI Analyst. Dari DNVB Indonesia.';
 
 const BASE: SeoRoute[] = [
   { path: '/', title: HOME_TITLE, description: HOME_DESC, priority: 1, changefreq: 'weekly', kind: 'home' },
@@ -70,7 +70,9 @@ const BASE: SeoRoute[] = [
   { path: '/data-deletion', title: 'Data deletion | ZieAds', description: 'How to delete your ZieAds data and disconnect Instagram, Facebook, TikTok and LinkedIn, and how to check the status of a deletion request.', priority: 0.2, changefreq: 'yearly', crumbs: ['Data deletion'], kind: 'legal' },
 ];
 
-export const SEO_ROUTES: SeoRoute[] = [
+/* DNVB: one page landing, so only the home page and the legal pages are public and prerendered */
+export const SEO_ROUTES: SeoRoute[] = BASE.filter((r) => r.kind === 'home' || r.kind === 'legal');
+export const SEO_ROUTES_ZIEADS: SeoRoute[] = [
   ...BASE,
   ...VS_PAGES.map<SeoRoute>((p) => ({ path: `/vs/${p.slug}`, title: `${p.title} | ZieAds`, description: p.description, priority: 0.8, changefreq: 'monthly', crumbs: [`ZieAds vs ${p.name}`], kind: 'vs' })),
   ...DOCS.map<SeoRoute>((d) => ({
@@ -95,14 +97,14 @@ const ORG = {
   '@type': 'Organization',
   '@id': `${SITE}/#org`,
   name: SITE_NAME,
-  legalName: 'PT. Bantu Indonesia Technology',
+  legalName: 'DNVB Indonesia',
   url: SITE,
   logo: `${SITE}/icon-512.png`,
   email: 'privacy@zieads.com',
   sameAs: [] as string[],
 };
 
-const WEBSITE = { '@type': 'WebSite', '@id': `${SITE}/#website`, url: SITE, name: SITE_NAME, publisher: { '@id': `${SITE}/#org` }, inLanguage: 'en' };
+const WEBSITE = { '@type': 'WebSite', '@id': `${SITE}/#website`, url: SITE, name: SITE_NAME, publisher: { '@id': `${SITE}/#org` }, inLanguage: 'id' };
 
 const priceOf = (p: string) => Number(String(p).replace(/[^0-9.]/g, '')) || 0;
 
@@ -112,22 +114,12 @@ const APP = {
   name: SITE_NAME,
   url: SITE,
   applicationCategory: 'BusinessApplication',
-  applicationSubCategory: 'Social media management',
+  applicationSubCategory: 'TikTok account management',
   operatingSystem: 'Web',
-  description:
-    'Social media tool for publishing, inbox, comments, analytics and competitors. Every morning it turns your numbers into three actions, and Zie, the AI agent, prepares the work for your approval. Works with Instagram, Facebook, TikTok, LinkedIn, Threads, YouTube, Pinterest, Bluesky, Mastodon, Telegram and Discord, and inside Claude and ChatGPT through MCP.',
+  description: 'Dashboard untuk mengorkestrasi 100+ akun TikTok: jadwal massal, connect link kreator, analytics gabungan dan AI Analyst.',
   image: OG_IMAGE,
   publisher: { '@id': `${SITE}/#org` },
-  featureList: [
-    'Schedule and publish to 11 social networks',
-    'Morning plan with three ranked actions',
-    'Unified inbox and comments with reply drafts',
-    'Analytics with Meta, Google and TikTok Ads, read only',
-    'Competitor tracking with live ads and posts',
-    'Zie, an AI agent that drafts posts and replies for approval',
-    'Workspaces, one per brand',
-    'REST API and MCP server',
-  ],
+  featureList: ['100+ TikTok accounts in one workspace', 'Connect links for creators', 'Bulk scheduling with stagger', 'Fleet analytics', 'AI Analyst and AI Agent'],
   offers: pricingPlans.map((p) => ({ '@type': 'Offer', name: p.tier, price: priceOf(p.price), priceCurrency: 'USD', description: p.tagline, url: `${SITE}/pricing` })),
 };
 
@@ -154,7 +146,7 @@ export function jsonLdFor(r: SeoRoute): object {
   const page = { '@type': r.kind === 'docs' ? 'TechArticle' : 'WebPage', '@id': `${SITE}${r.path}#page`, url: `${SITE}${r.path}`, name: r.title, description: r.description, isPartOf: { '@id': `${SITE}/#website` }, about: { '@id': `${SITE}/#app` }, inLanguage: 'en' };
   const graph: object[] = [ORG, WEBSITE, page];
   if (r.kind === 'home' || r.kind === 'pricing' || r.kind === 'features') graph.push(APP);
-  if (r.kind === 'home' || r.kind === 'pricing') graph.push(faqLd());
+  if (r.kind === 'pricing') graph.push(faqLd());
   const c = crumbsLd(r);
   if (c) graph.push(c);
   return { '@context': 'https://schema.org', '@graph': graph };

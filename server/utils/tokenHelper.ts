@@ -16,15 +16,19 @@ export interface DecryptedConnection {
  */
 export async function getDecryptedToken(
   userId: string,
-  platform: string
+  platform: string,
+  /** DNVB: a workspace can hold many accounts of one platform. Pass the account's platform id to pick one. */
+  platformUserId?: string | null
 ): Promise<DecryptedConnection | null> {
-  const { data, error } = await supabaseAdmin
+  let q = supabaseAdmin
     .from('social_connections')
     .select('*')
     .eq('user_id', userId)
     .eq('platform', platform)
-    .eq('is_active', true)
-    .maybeSingle();
+    .eq('is_active', true);
+  if (platformUserId) q = q.eq('platform_user_id', platformUserId);
+  const { data: rows, error } = await q.order('connected_at', { ascending: true }).limit(1);
+  const data = rows?.[0];
 
   if (error || !data) {
     console.log(`[TokenHelper] No active ${platform} connection for user ${userId}`);

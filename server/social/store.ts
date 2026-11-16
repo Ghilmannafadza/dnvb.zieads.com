@@ -43,7 +43,7 @@ export async function saveConnection(userId: string, platform: string, s: SaveIn
       metadata: s.metadata || {},
       updated_at: now,
     },
-    { onConflict: "user_id,platform" }
+    { onConflict: "user_id,platform,platform_user_id" }
   );
   if (error) throw new Error(`Could not save the ${platform} connection: ${error.message}`);
   const handle = s.username ? (s.username.startsWith("@") || platform === "discord" || platform === "telegram" ? s.username : `@${s.username}`) : s.displayName || platform;
@@ -77,8 +77,11 @@ export interface LoadedConnection {
   metadata: Record<string, any>;
 }
 
-export async function loadConnection(userId: string, platform: string): Promise<LoadedConnection | null> {
-  const { data } = await supabaseAdmin.from("social_connections").select("*").eq("user_id", userId).eq("platform", platform).eq("is_active", true).maybeSingle();
+export async function loadConnection(userId: string, platform: string, platformUserId?: string | null): Promise<LoadedConnection | null> {
+  let q = supabaseAdmin.from("social_connections").select("*").eq("user_id", userId).eq("platform", platform).eq("is_active", true);
+  if (platformUserId) q = q.eq("platform_user_id", platformUserId);
+  const { data: rows } = await q.order("connected_at", { ascending: true }).limit(1);
+  const data = rows?.[0];
   if (!data) return null;
   try {
     return {

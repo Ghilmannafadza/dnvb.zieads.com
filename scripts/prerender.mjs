@@ -15,7 +15,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
 const ssr = await import(pathToFileURL(path.join(root, 'dist-ssr', 'entry-prerender.js')).href);
 const { render, SEO_ROUTES, jsonLdFor, DOCS, VS_PAGES, faqItems, pricingPlans } = ssr;
-const SITE = 'https://www.zieads.com';
+const SITE = 'https://dnvb.zieads.com';
 
 const template = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 // The plain shell for app routes: no landing content, not indexable

@@ -7,7 +7,7 @@
   --au-ink-2: #505050;
   --au-ink-3: #8a8a8a;
   --au-line: #e7e7e7;
-  --au-accent: #f26522;
+  --au-accent: #E8478C;
   --au-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   height: 100vh;
   height: 100dvh;
@@ -100,7 +100,7 @@
   cursor: pointer;
   transition: background 0.2s;
 }
-.za-auth-submit:hover:not(:disabled) { background: #e05a1a; }
+.za-auth-submit:hover:not(:disabled) { background: #D63A7C; }
 .za-auth-submit:active:not(:disabled) { background: #cc5216; }
 .za-auth-submit:disabled { opacity: 0.65; cursor: wait; }
 .za-auth-submit:focus-visible, .za-auth-google:focus-visible, .za-auth-switch button:focus-visible { outline: 2px solid var(--au-ink); outline-offset: 2px; }

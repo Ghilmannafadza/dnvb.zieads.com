@@ -133,7 +133,7 @@ export default function CalendarPage() {
   const [permalinkInput, setPermalinkInput] = useState('');
   const [navDir, setNavDir] = useState<1 | -1>(1);
   // Which profile grid the feed preview shows when both platforms have posts
-  const [feedPlatform, setFeedPlatform] = useState<FeedPlatform>('instagram');
+  const [feedPlatform, setFeedPlatform] = useState<FeedPlatform>('tiktok');
 
   const getAuthHeaders = async () => {
     const { data } = await supabase.auth.getSession();
@@ -456,7 +456,7 @@ export default function CalendarPage() {
   const igScheduledSorted = [...igScheduled].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
   // Feed tiles: planned posts first (like a profile grid shows the newest first), then live posts.
-  const normPlatform = (p?: string): FeedPlatform => (p && p.toLowerCase().includes('tiktok') ? 'tiktok' : 'instagram');
+  const normPlatform = (_p?: string): FeedPlatform => 'tiktok'; // DNVB: TikTok only
   const tileKind = (mediaType?: string, url?: string, count = 1): TileKind => {
     const t = (mediaType || '').toUpperCase();
     if (t.includes('REEL')) return 'reel';
@@ -499,7 +499,7 @@ export default function CalendarPage() {
   const feedPlatforms = Array.from(new Set(mergedFeedItems.map(i => i.platform)));
   const activeFeedPlatform: FeedPlatform = feedPlatforms.includes(feedPlatform)
     ? feedPlatform
-    : feedPlatforms.includes('instagram') || feedPlatforms.length === 0 ? 'instagram' : 'tiktok';
+    : 'tiktok';
   const feedTiles = mergedFeedItems.filter(i => i.platform === activeFeedPlatform);
   const grid = PROFILE_GRID[activeFeedPlatform];
 
@@ -800,7 +800,6 @@ export default function CalendarPage() {
                   value={activeFeedPlatform}
                   onChange={(id) => setFeedPlatform(id as FeedPlatform)}
                   tabs={[
-                    { id: 'instagram' as const, label: 'Instagram', icon: <SocialIcon platform="instagram" size={12} /> },
                     { id: 'tiktok' as const, label: 'TikTok', icon: <SocialIcon platform="tiktok" size={12} /> },
                   ]}
                 />

@@ -13,6 +13,7 @@
 import crypto from "crypto";
 import { supabaseAdmin } from "../supabaseServer.js";
 import { getDecryptedToken } from "../utils/tokenHelper.js";
+import { getTikTokConnection } from "../tiktok/accounts.js";
 import { publishPost as igPublishSingle } from "../utils/instagramApi.js";
 import { prepareImage, INSTAGRAM_IMAGE } from "./mediaPrep.js";
 import { publishToPage, commentOnPost, explainGraphError, GraphError } from "../utils/facebookApi.js";
@@ -138,31 +139,60 @@ async function publishFacebook(post: any) {
 }
 
 /**
- * TikTok: with video.upload granted, the video goes to the creator's TikTok inbox
- * as a draft (spec 9.2: production path until the Direct Post audit passes).
- * The creator finishes the post in the TikTok app, so the status is needs_action.
+ * TikTok (DNVB: many accounts per workspace). The post row names its account in platform_account_id
+ * (a connected_accounts id or the open_id).
+ *  - video.publish granted and a privacy level picked: Direct Post, the video goes live on the account.
+ *  - only video.upload: the video lands in that account's TikTok inbox as a draft (needs_action).
+ *  - neither: reminder, the caption is ready to copy.
  */
 async function publishTikTok(post: any): Promise<{ externalId: string; permalink?: string }> {
-  const conn = await getDecryptedToken(post.user_id, "tiktok");
-  if (!conn) throw new PublishError("TikTok is not connected. Reconnect it in Connections.", false, true);
+  const conn = await getTikTokConnection(post.user_id, post.platform_account_id || null);
+  if (!conn) throw new PublishError("This TikTok account is not connected any more. Reconnect it in Accounts.", false, true);
   const urls: string[] = (post.media_urls || []).filter(Boolean);
   if (!urls.length) throw new PublishError("TikTok needs a video.", false);
   const scopes = conn.scopes.split(/[ ,]+/);
+  const opts = post.platform_options?.tiktok || {};
+  const who = conn.username ? `@${conn.username.replace(/^@/, "")}` : "this account";
+  const headers = { Authorization: `Bearer ${conn.token}`, "Content-Type": "application/json; charset=UTF-8" };
+  const fail = (j: any, status: number) => {
+    const code = j.error?.code || status;
+    const reconnect = code === "access_token_invalid" || code === "scope_not_authorized";
+    return new PublishError(`TikTok refused the upload for ${who} (${code}). ${j.error?.message || ""}`.trim(), !reconnect && code !== "spam_risk_too_many_posts", reconnect);
+  };
+
+  if (scopes.includes("video.publish") && opts.privacy) {
+    const res = await fetch("https://open.tiktokapis.com/v2/post/publish/video/init/", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        post_info: {
+          title: String(post.caption || "").slice(0, 2200),
+          privacy_level: opts.privacy,
+          disable_comment: !opts.comment,
+          disable_duet: !opts.duet,
+          disable_stitch: !opts.stitch,
+          brand_content_toggle: !!(opts.commercial && opts.branded),
+          brand_organic_toggle: !!(opts.commercial && opts.yourBrand),
+        },
+        source_info: { source: "PULL_FROM_URL", video_url: urls[0] },
+      }),
+    });
+    const j: any = await res.json().catch(() => ({}));
+    if (!res.ok || (j.error && j.error.code && j.error.code !== "ok")) throw fail(j, res.status);
+    return { externalId: j.data?.publish_id || "pending", permalink: conn.username ? `https://www.tiktok.com/@${conn.username.replace(/^@/, "")}` : undefined };
+  }
+
   if (!scopes.includes("video.upload")) {
-    throw new NeedsAction("TikTok publishing is waiting for TikTok's approval. Post this video from the TikTok app: the caption is ready to copy.");
+    throw new NeedsAction(`TikTok publishing for ${who} is waiting for TikTok's approval. Post this video from the TikTok app: the caption is ready to copy.`);
   }
   const res = await fetch("https://open.tiktokapis.com/v2/post/publish/inbox/video/init/", {
     method: "POST",
-    headers: { Authorization: `Bearer ${conn.token}`, "Content-Type": "application/json; charset=UTF-8" },
+    headers,
     body: JSON.stringify({ source_info: { source: "PULL_FROM_URL", video_url: urls[0] } }),
   });
   const j: any = await res.json().catch(() => ({}));
-  if (!res.ok || (j.error && j.error.code && j.error.code !== "ok")) {
-    const code = j.error?.code || res.status;
-    const reconnect = code === "access_token_invalid" || code === "scope_not_authorized";
-    throw new PublishError(`TikTok refused the upload (${code}). ${j.error?.message || ""}`.trim(), !reconnect, reconnect);
-  }
-  throw new NeedsAction(`The video is in your TikTok inbox as a draft (id ${j.data?.publish_id || "pending"}). Open TikTok, check the notification and post it.`);
+  if (!res.ok || (j.error && j.error.code && j.error.code !== "ok")) throw fail(j, res.status);
+  throw new NeedsAction(`The video is in the TikTok inbox of ${who} as a draft (id ${j.data?.publish_id || "pending"}). Open TikTok on that account, check the notification and post it.`);
 }
 
 const DISPATCH: Record<string, (post: any) => Promise<{ externalId: string; permalink?: string; warning?: string }>> = {

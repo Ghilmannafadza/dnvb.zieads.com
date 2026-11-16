@@ -19,7 +19,7 @@ import ZieAvatar from '../components/ZieAvatar';
 import ArtifactDeck, { type AgentArtifact } from './agent/ArtifactCards';
 import { ALL_MODES, SOCIAL_MODES, ADS_MODES, modeAccess, type PlanName } from '../lib/analysisModes';
 
-const P = '#F26522'; // Orange accent (matches landing page)
+const P = '#E8478C'; // Orange accent (matches landing page)
 const G = '#6B7A89'; // Muted editorial text
 const D = '#0B1B2B'; // Deep ink dark text
 const B = '#E5DFCF'; // Vintage construction grid/cream border

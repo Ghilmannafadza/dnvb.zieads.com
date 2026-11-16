@@ -5,9 +5,9 @@
 @keyframes zcaChipIn { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
 @keyframes zcaTileIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
 @keyframes zcaTodayPulse {
-  0% { box-shadow: inset 0 0 0 1.5px var(--zd-accent), 0 0 0 0 rgba(242, 101, 34, 0.28); }
-  70% { box-shadow: inset 0 0 0 1.5px var(--zd-accent), 0 0 0 7px rgba(242, 101, 34, 0); }
-  100% { box-shadow: inset 0 0 0 1.5px var(--zd-accent), 0 0 0 0 rgba(242, 101, 34, 0); }
+  0% { box-shadow: inset 0 0 0 1.5px var(--zd-accent), 0 0 0 0 rgba(232, 71, 140, 0.28); }
+  70% { box-shadow: inset 0 0 0 1.5px var(--zd-accent), 0 0 0 7px rgba(232, 71, 140, 0); }
+  100% { box-shadow: inset 0 0 0 1.5px var(--zd-accent), 0 0 0 0 rgba(232, 71, 140, 0); }
 }
 @keyframes zcaModalIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
 
@@ -103,8 +103,8 @@
   animation: zcaChipIn 0.45s var(--zd-ease) both;
   transition: transform 0.3s var(--zd-ease), box-shadow 0.3s, border-color 0.25s !important;
 }
-.zca-chip:hover { transform: translateY(-2px); border-color: rgba(242, 101, 34, 0.4); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.07); }
-.zca-chip.is-selected { border-color: var(--zd-accent); box-shadow: 0 0 0 3px rgba(242, 101, 34, 0.12); }
+.zca-chip:hover { transform: translateY(-2px); border-color: rgba(232, 71, 140, 0.4); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.07); }
+.zca-chip.is-selected { border-color: var(--zd-accent); box-shadow: 0 0 0 3px rgba(232, 71, 140, 0.12); }
 .zca-chip.is-failed { background: #fff; border-color: var(--zd-bad); color: var(--zd-ink); }
 .zca-chip-dot { width: 7px; height: 7px; align-self: center; border-radius: 50%; flex-shrink: 0; }
 .zca-chip-icon { display: inline-flex; flex-shrink: 0; }
@@ -221,10 +221,10 @@
 .zca-chip.is-draft { border-style: dashed !important; border-color: #f5b48a !important; background: #fffaf6 !important; }
 .zca-chip.is-draft .zca-chip-status { }
 .zca-draft-note { display: flex; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #fff7f1; border: 1px solid #ffd9c2; font-size: 13px; line-height: 1.5; color: #3d2a1f; }
-.zca-draft-note svg { color: #f26522; flex-shrink: 0; margin-top: 2px; }
+.zca-draft-note svg { color: #E8478C; flex-shrink: 0; margin-top: 2px; }
 .zca-draft-actions { display: flex; align-items: center; gap: 8px; }
-.zca-btn-approve { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: none; border-radius: 8px; background: #f26522; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.3s; }
-.zca-btn-approve:hover:not(:disabled) { background: #e05a1a; transform: translateY(-1px); }
+.zca-btn-approve { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: none; border-radius: 8px; background: #E8478C; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.3s; }
+.zca-btn-approve:hover:not(:disabled) { background: #D63A7C; transform: translateY(-1px); }
 .zca-btn-approve:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Spec 7.5: filters, week view, drag and drop, best times, unscheduled drafts */

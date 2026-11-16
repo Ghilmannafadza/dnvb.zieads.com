@@ -6,7 +6,7 @@
   --dc-faint: #9a9a9a;
   --dc-line: #ececec;
   --dc-soft: #f6f6f5;
-  --dc-orange: #f26522;
+  --dc-orange: #E8478C;
   --dc-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   min-height: 100vh;
   background: #fff;
@@ -77,7 +77,7 @@
 .dc-p { margin: 0 0 14px; }
 .dc-ul { margin: 0 0 16px; padding-left: 22px; }
 .dc-ul li { margin-bottom: 6px; }
-.dc-a { color: var(--dc-ink); font-weight: 550; text-decoration: underline; text-decoration-color: rgba(242, 101, 34, 0.5); text-underline-offset: 3px; }
+.dc-a { color: var(--dc-ink); font-weight: 550; text-decoration: underline; text-decoration-color: rgba(232, 71, 140, 0.5); text-underline-offset: 3px; }
 .dc-a:hover { text-decoration-color: var(--dc-orange); }
 .dc-ic { font-family: var(--dc-mono); font-size: 0.86em; padding: 2px 6px; border-radius: 6px; background: var(--dc-soft); border: 1px solid var(--dc-line); word-break: break-word; }
 

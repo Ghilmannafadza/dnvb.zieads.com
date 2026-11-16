@@ -275,6 +275,8 @@ export function getNextPlan(currentPlanId: PlanId): PlanId | null {
 
 export interface PlanLimits {
   brands: number;
+  /** DNVB: TikTok accounts one workspace can hold, -1 = unlimited */
+  tiktokAccounts: number;
   teamSeats: number;
   briefingCadence: 'weekly' | 'daily';
   postsPerMonth: number;
@@ -296,28 +298,28 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
   free: {
-    brands: 1, teamSeats: 1, briefingCadence: 'weekly', postsPerMonth: 20,
+    tiktokAccounts: 5, brands: 1, teamSeats: 1, briefingCadence: 'weekly', postsPerMonth: 20,
     inboxPlatforms: 'meta_only', inboxDms: false, savedReplies: false, assignment: false,
     analyticsHistoryDays: 30, competitorsPerBrand: 3, socialAnalystModes: 2, adsAnalyst: 'none',
     guardian: true, scheduledAgents: 0, scheduledReports: 'none', clientPortal: false,
     mcpDailyCalls: 50, websiteAuditsMonthly: -1,
   },
   starter: {
-    brands: 1, teamSeats: 1, briefingCadence: 'daily', postsPerMonth: -1,
+    tiktokAccounts: 30, brands: 1, teamSeats: 1, briefingCadence: 'daily', postsPerMonth: -1,
     inboxPlatforms: 'all', inboxDms: false, savedReplies: false, assignment: false,
     analyticsHistoryDays: 365, competitorsPerBrand: 10, socialAnalystModes: -1, adsAnalyst: 'basic',
     guardian: true, scheduledAgents: 3, scheduledReports: 'zieads', clientPortal: false,
     mcpDailyCalls: 1000, websiteAuditsMonthly: -1,
   },
   pro: {
-    brands: 3, teamSeats: 3, briefingCadence: 'daily', postsPerMonth: -1,
+    tiktokAccounts: 150, brands: 3, teamSeats: 3, briefingCadence: 'daily', postsPerMonth: -1,
     inboxPlatforms: 'all', inboxDms: true, savedReplies: true, assignment: false,
     analyticsHistoryDays: -1, competitorsPerBrand: 50, socialAnalystModes: -1, adsAnalyst: 'full',
     guardian: true, scheduledAgents: 20, scheduledReports: 'white_label', clientPortal: true,
     mcpDailyCalls: 5000, websiteAuditsMonthly: 40,
   },
   agency: {
-    brands: 10, teamSeats: 10, briefingCadence: 'daily', postsPerMonth: -1,
+    tiktokAccounts: -1, brands: 10, teamSeats: 10, briefingCadence: 'daily', postsPerMonth: -1,
     inboxPlatforms: 'all', inboxDms: true, savedReplies: true, assignment: true,
     analyticsHistoryDays: -1, competitorsPerBrand: 100, socialAnalystModes: -1, adsAnalyst: 'full',
     guardian: true, scheduledAgents: -1, scheduledReports: 'white_label_agency', clientPortal: true,

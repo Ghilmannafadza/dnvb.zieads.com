@@ -52,9 +52,12 @@ export interface SubmitInput {
   media_attachments?: Array<{ id: string; file_url?: string; url?: string; mime_type?: string }>;
   mode: SubmitMode;
   scheduled_for?: string;
+  /** DNVB: spread the same post over many accounts, N minutes apart (schedule mode) */
+  stagger_minutes?: number;
 }
 
-const SUPPORTED = new Set(["instagram", "facebook", "tiktok", "linkedin", "threads", "pinterest", "youtube", "bluesky", "mastodon", "telegram", "discord"]);
+/* DNVB: TikTok only */
+const SUPPORTED = new Set(["tiktok"]);
 
 export async function resolveMedia(userId: string, ids: string[] = [], temp: SubmitInput["media_attachments"] = []) {
   const urls: string[] = [];
@@ -146,14 +149,18 @@ export async function submitPosts(userId: string, input: SubmitInput): Promise<S
     tz = st?.timezone || "Asia/Jakarta";
   }
   const posts: SubmitOutcome["posts"] = [];
-  for (const t of targets) {
+  const stagger = input.mode === "schedule" ? Math.min(Math.max(Number(input.stagger_minutes) || 0, 0), 240) : 0;
+  for (const [i, t] of targets.entries()) {
     const caption = t.caption ?? input.caption ?? "";
+    if (stagger && when) scheduledFor = new Date(when.getTime() + i * stagger * 60000).toISOString();
     if (input.mode === "queue") {
       const { data: taken } = await supabaseAdmin
         .from("scheduled_posts")
         .select("scheduled_for")
         .eq("user_id", userId)
         .eq("platform", t.platform)
+        // DNVB: slots are per account, 100 accounts can each post at 09:00
+        .eq("platform_account_id", t.account_id || "")
         .in("status", ["scheduled", "approved"])
         .gte("scheduled_for", new Date().toISOString());
       scheduledFor = nextQueueSlot((taken || []).map((r: any) => new Date(r.scheduled_for)), new Date(), tz).toISOString();

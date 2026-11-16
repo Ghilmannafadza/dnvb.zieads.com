@@ -60,12 +60,12 @@ export async function syncFacebookForUser(userId: string): Promise<{ ok: boolean
           reach_daily: null,
           raw_response: m,
         },
-        { onConflict: "user_id,platform,snapshot_date" }
+        { onConflict: "user_id,platform,platform_account_id,snapshot_date" }
       );
     }
     await supabaseAdmin.from("account_insights_daily").upsert(
       { user_id: userId, platform: "facebook", platform_account_id: page.pageId, snapshot_date: today, followers_count: profile.followers, raw_response: byDate[today] || {} },
-      { onConflict: "user_id,platform,snapshot_date" }
+      { onConflict: "user_id,platform,platform_account_id,snapshot_date" }
     );
 
     // Posts and per post insights

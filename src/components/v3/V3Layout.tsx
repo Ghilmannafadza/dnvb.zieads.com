@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ZieAdsLogo, { ZieAdsWordmark } from '../ZieAdsLogo';
+import DnvbLogo from '../DnvbLogo';
 import { 
    
   Calendar, 
@@ -20,7 +20,7 @@ import {
   Menu,
   X,
   AlertCircle,
-  Search, BotMessageSquare, Plus } from 'lucide-react';
+  Search, BotMessageSquare, Plus, Users } from 'lucide-react';
 import ZIcon from '../icons/ZIcon';
 import ZieAvatar from '../ZieAvatar';
 import { supabase } from '../../lib/supabaseClient';
@@ -29,7 +29,6 @@ import { useDemoMode } from '../../lib/demoStore';
 import CreditBadge from '../CreditBadge';
 import SocialIcon from './SocialIcon';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
-import { PLATFORMS, PLATFORM_COUNT } from '../../lib/platforms';
 import { useConnectedAccounts } from '../../lib/connectionsStore';
 import { sampleConnections } from '../../data/sample-data';
 import { ArrowRight } from 'lucide-react';
@@ -157,6 +156,7 @@ export default function V3Layout({ children }: Props) {
   const navGroups: Array<{ label?: string; items: Array<{ k: string; l: string; icon: ReactNode }> }> = [
     {
       items: [
+        { k: '/accounts', l: 'TikTok Accounts', icon: <Users size={16} /> },
         { k: '/analyst', l: 'AI Analyst', icon: <ZIcon name="ai-analyst" size={16} /> },
         { k: '/agent', l: 'AI Agent', icon: <BotMessageSquare size={16} /> },
       ],
@@ -184,7 +184,7 @@ export default function V3Layout({ children }: Props) {
     },
   ];
   const setupItems = [
-    { k: '/connections', l: 'Connections', icon: <Link2 size={16} /> },
+    { k: '/connections', l: 'Connect TikTok', icon: <Link2 size={16} /> },
     { k: '/settings', l: 'Settings', icon: <SettingsIcon size={16} /> },
   ];
   const v3Items = [...navGroups.flatMap((g) => g.items), ...setupItems];
@@ -219,13 +219,11 @@ export default function V3Layout({ children }: Props) {
     </button>
   );
 
-  // Connected accounts in the sidebar (layout inspired by Buffer style sidebars): who is connected,
-  // the next networks to add, and how many of the 12 are live
+  // DNVB: the sidebar shows the fleet size and the first few TikTok accounts; the full list lives on /accounts
   const accounts = demo.isActive
-    ? sampleConnections.map((c) => ({ platform: c.platform, connected: true, username: c.account_handle, display_name: c.account_handle }))
+    ? sampleConnections.filter((c) => c.platform === 'tiktok').map((c) => ({ platform: c.platform, connected: true, username: c.account_handle, display_name: c.account_handle, avatar_url: '' as string | undefined }))
     : liveAccounts || [];
-  const connectedIds = new Set(accounts.map((a) => a.platform));
-  const nextUp = PLATFORMS.filter((p) => !connectedIds.has(p.id)).sort((a, b) => (a.status === b.status ? 0 : a.status === 'available' ? -1 : 1)).slice(0, 4);
+  const SHOWN = 6;
   const dismissProgress = () => {
     setHideProgress(true);
     try {
@@ -237,56 +235,49 @@ export default function V3Layout({ children }: Props) {
   const renderAccounts = () => (
     <div className="zd-nav-group zd-accts">
       <div className="zd-accts-head">
-        <span className="zd-nav-label">Accounts</span>
-        <button type="button" className="zd-accts-btn" onClick={() => handleNavClick('/connections')} aria-label="Manage accounts" title="Manage accounts">
+        <span className="zd-nav-label">TikTok · {accounts.length}</span>
+        <button type="button" className="zd-accts-btn" onClick={() => handleNavClick('/accounts')} aria-label="Manage accounts" title="Manage accounts">
           <SettingsIcon size={14} />
         </button>
-        <button type="button" className="zd-accts-btn" onClick={() => handleNavClick('/connections')} aria-label="Connect an account" title="Connect an account">
+        <button type="button" className="zd-accts-btn" onClick={() => handleNavClick('/connections')} aria-label="Connect a TikTok account" title="Connect a TikTok account">
           <Plus size={14} />
         </button>
       </div>
-      {accounts.map((a) => {
-        const name = a.display_name || a.username || PLATFORMS.find((p) => p.id === a.platform)?.name || a.platform;
+      {accounts.slice(0, SHOWN).map((a: any, i: number) => {
+        const name = a.label || a.display_name || a.username || 'TikTok';
         return (
-          <button key={a.platform} type="button" className="zd-acct" onClick={() => handleNavClick('/connections')} title={name}>
+          <button key={a.open_id || a.username || i} type="button" className="zd-acct" onClick={() => handleNavClick('/accounts')} title={a.username ? `@${String(a.username).replace(/^@/, '')}` : name}>
             <span className="zd-acct-av">
-              {a.avatar_url ? <img src={a.avatar_url} alt="" onError={(e) => ((e.target as HTMLElement).style.display = 'none')} /> : <span className="zd-acct-initial">{name.replace(/^@/, '').slice(0, 1).toUpperCase()}</span>}
+              {a.avatar_url ? <img src={a.avatar_url} alt="" onError={(e) => ((e.target as HTMLElement).style.display = 'none')} /> : <span className="zd-acct-initial">{String(name).replace(/^@/, '').slice(0, 1).toUpperCase()}</span>}
               <span className="zd-acct-badge">
-                <SocialIcon platform={a.platform} size={13} />
+                <SocialIcon platform="tiktok" size={13} />
               </span>
             </span>
             <span className="zd-acct-name">{name}</span>
           </button>
         );
       })}
-      {nextUp.length > 0 && (
-        <>
-          <div className="zd-acct-next-label">{accounts.length ? 'Connect another account' : 'Connect your first account'}</div>
-          <div className="zd-acct-next">
-            {nextUp.map((p) => (
-              <button key={p.id} type="button" className={`zd-acct-tile ${p.status === 'soon' ? 'is-soon' : ''}`} onClick={() => handleNavClick('/connections')} aria-label={p.status === 'soon' ? `${p.name}, coming soon` : `Add ${p.name}`} title={p.status === 'soon' ? `${p.name} (soon)` : `Connect ${p.name}`}>
-                <SocialIcon platform={p.id} size={22} />
-              </button>
-            ))}
-            <button type="button" className="zd-acct-tile is-more" onClick={() => handleNavClick('/connections')} aria-label="See all networks" title="See all networks">
-              <Plus size={14} />
-            </button>
-          </div>
-        </>
+      {accounts.length > SHOWN && (
+        <button type="button" className="zd-acct" onClick={() => handleNavClick('/accounts')}>
+          <span className="zd-acct-name" style={{ color: 'var(--text-muted)' }}>+{accounts.length - SHOWN} more accounts</span>
+        </button>
       )}
-      {!hideProgress && (
+      {accounts.length === 0 && (
+        <button type="button" className="zd-acct-tile" style={{ width: '100%', justifyContent: 'flex-start', gap: 8, padding: '8px 10px' }} onClick={() => handleNavClick('/connections')}>
+          <SocialIcon platform="tiktok" size={20} /> <span style={{ fontSize: 13 }}>Connect your first TikTok</span>
+        </button>
+      )}
+      {!hideProgress && accounts.length > 0 && accounts.length < 100 && (
         <div className="zd-acct-progress">
           <div className="zd-acct-progress-head">
-            <strong>
-              {accounts.length}/{PLATFORM_COUNT} platforms connected
-            </strong>
+            <strong>{accounts.length} TikTok accounts connected</strong>
             <button type="button" className="zd-accts-btn" onClick={dismissProgress} aria-label="Hide">
               <X size={13} />
             </button>
           </div>
-          <div className="zd-acct-segs" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${PLATFORM_COUNT}, 1fr)` }}>
-            {Array.from({ length: PLATFORM_COUNT }, (_, i) => (
-              <i key={i} className={i < accounts.length ? 'is-on' : ''} />
+          <div className="zd-acct-segs" aria-hidden="true" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
+            {Array.from({ length: 10 }, (_, i) => (
+              <i key={i} className={i < Math.ceil(accounts.length / 10) ? 'is-on' : ''} />
             ))}
           </div>
         </div>
@@ -296,9 +287,8 @@ export default function V3Layout({ children }: Props) {
 
   const renderSidebarContent = () => (
     <>
-      <div className="zd-brand" onClick={() => handleNavClick('/analyst')}>
-        <ZieAdsLogo size={26} />
-        <span className="zd-brand-name"><ZieAdsWordmark /></span>
+      <div className="zd-brand" onClick={() => handleNavClick('/accounts')}>
+        <DnvbLogo height={22} />
       </div>
 
       <WorkspaceSwitcher onNavigate={() => setDrawerOpen(false)} />
@@ -362,8 +352,7 @@ export default function V3Layout({ children }: Props) {
           <span />
           <span />
         </button>
-        <span className="zd-brand-name" style={{ fontSize: 17 }}><ZieAdsWordmark /></span>
-        <ZieAdsLogo size={24} />
+        <DnvbLogo height={20} />
       </div>
 
       {drawerOpen && <div className="zd-backdrop" onClick={() => setDrawerOpen(false)} />}

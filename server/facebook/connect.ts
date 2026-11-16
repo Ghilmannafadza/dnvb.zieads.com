@@ -56,7 +56,7 @@ async function storePage(userId: string, page: FbPage, pages: FbPage[], fbUserId
       metadata: meta,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,platform" }
+    { onConflict: "user_id,platform,platform_user_id" }
   );
   if (error) throw new Error(error.message);
 

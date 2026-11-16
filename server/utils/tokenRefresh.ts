@@ -34,6 +34,8 @@ export async function refreshExpiringTokens(): Promise<void> {
     for (const connection of expiringConnections) {
       const platform = connection.platform;
       const connectionId = connection.id;
+      // DNVB: TikTok tokens are refreshed by server/tiktok/accounts.ts (marks needs_reconnect instead of switching off)
+      if (platform === "tiktok") continue;
 
       try {
         let decryptedAccess = "";

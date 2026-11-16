@@ -12,6 +12,8 @@ import PricingPage from './pages/PricingPage';
 const SkillReport = lazy(() => import('./pages/SkillReport'));
 const AgentChat = lazy(() => import('./pages/AgentChat'));
 const ConnectionsPage = lazy(() => import('./pages/v3/ConnectionsPage'));
+const AccountsPage = lazy(() => import('./pages/v3/AccountsPage'));
+const ConnectTikTokPage = lazy(() => import('./pages/ConnectTikTokPage'));
 const AnalystPage = lazy(() => import('./pages/v3/AnalystPage'));
 const ComposerPage = lazy(() => import('./pages/v3/ComposerPage'));
 const CalendarPage = lazy(() => import('./pages/v3/CalendarPage'));
@@ -25,11 +27,8 @@ const SuperadminLogin = lazy(() => import('./pages/superadmin/SuperadminLogin'))
 const SuperadminDashboard = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
 import DataDeletionPage from './pages/DataDeletionPage';
-import VsPage from './pages/VsPage';
-import DocsPage from './pages/docs/DocsPage';
 const OAuthConsent = lazy(() => import('./pages/OAuthConsent'));
 import { ApiPage, McpPage } from './pages/dev/DevPages';
-import FeaturesPage from './pages/FeaturesPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import SeoHead from './seo/SeoHead';
 import { supabase } from './lib/supabaseClient';
@@ -75,7 +74,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/comments': 'Comments',
   '/inbox': 'Inbox',
   '/hunt': 'Competitor Hunt',
-  '/connections': 'Connections',
+  '/connections': 'Connect TikTok',
+  '/accounts': 'TikTok accounts',
+  '/connect/tiktok': 'Connect TikTok',
   '/settings': 'Settings',
   '/data-deletion': 'Data deletion',
   '/clients': 'Dashboard',
@@ -88,7 +89,7 @@ function TabTitle() {
   useEffect(() => {
     const page = PAGE_TITLES[pathname] || (pathname.startsWith('/settings') ? 'Settings' : undefined);
     if (pathname.startsWith('/vs/') || pathname.startsWith('/docs') || pathname.startsWith('/oauth/') || pathname === '/mcp' || pathname === '/api') return; // these pages set their own title
-    document.title = page ? `${page} | ZieAds` : 'ZieAds: The social media tool that tells you what to do next';
+    document.title = page ? `${page} | dnvb TikTok Hub` : 'dnvb TikTok Hub: run 100+ TikTok accounts from one dashboard';
   }, [pathname]);
   return null;
 }
@@ -158,8 +159,11 @@ export default function App() {
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/settings/:section" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/data-deletion" element={<DataDeletionPage />} />
-        <Route path="/vs/:slug" element={<VsPage />} />
+        {/* DNVB: one page landing, old marketing pages go home */}
+        <Route path="/vs/:slug" element={<Navigate to="/" replace />} />
         <Route path="/connections" element={<ProtectedRoute><ConnectionsPage /></ProtectedRoute>} />
+        <Route path="/accounts" element={<ProtectedRoute><AccountsPage /></ProtectedRoute>} />
+        <Route path="/connect/tiktok" element={<ConnectTikTokPage />} />
         <Route path="/analyst" element={<ProtectedRoute><AnalystPage /></ProtectedRoute>} />
         <Route path="/composer" element={<ProtectedRoute><ComposerPage /></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
@@ -172,10 +176,10 @@ export default function App() {
         <Route path="/privacy" element={<Navigate to="/privacy-policy" replace />} />
         <Route path="/privacy.html" element={<Navigate to="/privacy-policy" replace />} />
         <Route path="/terms" element={<TermsPage />} />
-        <Route path="/docs" element={<DocsPage />} />
-        <Route path="/docs/*" element={<DocsPage />} />
+        <Route path="/docs" element={<Navigate to="/" replace />} />
+        <Route path="/docs/*" element={<Navigate to="/" replace />} />
         <Route path="/oauth/authorize" element={<OAuthConsent />} />
-        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/features" element={<Navigate to="/" replace />} />
         <Route path="/mcp" element={<McpPage />} />
         <Route path="/api" element={<ApiPage />} />
         <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />

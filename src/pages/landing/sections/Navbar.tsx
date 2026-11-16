@@ -176,7 +176,7 @@ export default function Navbar() {
             Log in
           </button>
           <button
-            className="group inline-flex items-center gap-1.5 bg-[#F26522] hover:bg-[#e05a1a] text-white text-[13px] font-medium rounded-full pl-4 pr-1.5 py-1.5 transition-colors duration-300 cursor-pointer"
+            className="group inline-flex items-center gap-1.5 bg-[#E8478C] hover:bg-[#D63A7C] text-white text-[13px] font-medium rounded-full pl-4 pr-1.5 py-1.5 transition-colors duration-300 cursor-pointer"
             onClick={() => navigate('/sign-up')}
           >
             <span className="overflow-hidden h-[18px]">
@@ -188,7 +188,7 @@ export default function Navbar() {
               </span>
             </span>
             <span className="w-6 h-6 bg-white rounded-full flex items-center justify-center transition-transform duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] group-hover:rotate-0 -rotate-45">
-              <ArrowRight size={12} className="text-[#F26522]" />
+              <ArrowRight size={12} className="text-[#E8478C]" />
             </span>
           </button>
         </div>

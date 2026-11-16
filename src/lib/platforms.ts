@@ -42,66 +42,11 @@ export interface Platform {
   suggestions?: string[];
 }
 
+/* DNVB (dnvb.zieads.com): TikTok is the only connector. One workspace holds many TikTok accounts. */
 export const PLATFORMS: Platform[] = [
-  { id: 'facebook', name: 'Facebook', what: 'Pages: posts, insights, comments', status: 'available', connect: 'oauth' },
-  { id: 'instagram', name: 'Instagram', what: 'Professional account: posts, Reels, insights, comments', status: 'available', tokenDays: 60, connect: 'oauth' },
-  { id: 'threads', name: 'Threads', what: 'Text, photo, video and carousel posts', status: 'available', tokenDays: 60, connect: 'oauth' },
-  {
-    id: 'telegram',
-    name: 'Telegram',
-    what: 'Posts to a channel or group, with photos and videos',
-    status: 'available',
-    connect: 'telegram_bot',
-    manualLabel: 'Use your own bot instead',
-    manualHowTo: 'Add your bot from @BotFather to the channel as an admin that can post messages, then enter both here.',
-    manualFields: [
-      { key: 'chat', label: 'Channel or group', placeholder: '@yourchannel or -1001234567890' },
-      { key: 'bot_token', label: 'Your bot token', placeholder: '123456789:AA...', type: 'password', optional: true, help: 'Leave empty to use the ZieAds bot.' },
-    ],
-  },
-  {
-    id: 'discord',
-    name: 'Discord',
-    what: 'Posts to a channel with images',
-    status: 'available',
-    connect: 'oauth',
-    manualLabel: 'Paste a webhook URL instead',
-    manualHowTo: 'In Discord open the channel settings, then Integrations, Webhooks, New Webhook, and copy its URL.',
-    manualFields: [{ key: 'webhook_url', label: 'Webhook URL', placeholder: 'https://discord.com/api/webhooks/...', type: 'url' }],
-  },
-  {
-    id: 'bluesky',
-    name: 'Bluesky',
-    what: 'Posts with up to 4 images, links and hashtags',
-    status: 'available',
-    connect: 'oauth_form',
-    howTo: 'Enter your handle. Bluesky opens its own sign in page, no password is shared with ZieAds.',
-    fields: [{ key: 'handle', label: 'Your handle', placeholder: 'you.bsky.social' }],
-    manualLabel: 'Use an app password instead',
-    manualHowTo: 'Create an app password in Bluesky: Settings, Privacy and security, App passwords. Never use your main password.',
-    manualFields: [
-      { key: 'handle', label: 'Handle', placeholder: 'you.bsky.social' },
-      { key: 'app_password', label: 'App password', placeholder: 'xxxx-xxxx-xxxx-xxxx', type: 'password' },
-    ],
-  },
-  {
-    id: 'mastodon',
-    name: 'Mastodon',
-    what: 'Posts with up to 4 images or a video, on any server',
-    status: 'available',
-    connect: 'oauth_form',
-    howTo: 'Pick the server your account is on. ZieAds opens its sign in page.',
-    fields: [{ key: 'instance', label: 'Your server', placeholder: 'mastodon.social' }],
-    suggestions: ['mastodon.social', 'mastodon.online', 'mstdn.social', 'mas.to', 'fosstodon.org', 'techhub.social'],
-  },
-  { id: 'youtube', name: 'YouTube', what: 'Videos and Shorts with title, description and privacy', status: 'available', connect: 'oauth' },
-  { id: 'linkedin', name: 'LinkedIn', what: 'Your profile: text, images and video. Company Pages after LinkedIn review', status: 'available', tokenDays: 60, connect: 'oauth' },
-  { id: 'tiktok', name: 'TikTok', what: 'Profile stats and videos, upload to your TikTok inbox', status: 'available', connect: 'oauth' },
-  { id: 'pinterest', name: 'Pinterest', what: 'Image Pins to your boards, with a link', status: 'available', connect: 'oauth' },
-  { id: 'tumblr', name: 'Tumblr', what: 'Posts to your blogs', status: 'soon' },
-  { id: 'x', name: 'X', what: 'Posts, threads and replies', status: 'soon' },
-  { id: 'reddit', name: 'Reddit', what: 'Posts to your profile and communities you moderate', status: 'soon' },
+  { id: 'tiktok', name: 'TikTok', what: 'Profile stats, videos, scheduling and publishing for every account', status: 'available', connect: 'oauth' },
 ];
 
 export const PLATFORM_COUNT = PLATFORMS.length;
-export const platformName = (id: string) => PLATFORMS.find((p) => p.id === id)?.name || id;
+const NAMES: Record<string, string> = { tiktok: 'TikTok', tiktok_ads: 'TikTok Ads', instagram: 'Instagram', facebook: 'Facebook' };
+export const platformName = (id: string) => PLATFORMS.find((p) => p.id === id)?.name || NAMES[id] || id;

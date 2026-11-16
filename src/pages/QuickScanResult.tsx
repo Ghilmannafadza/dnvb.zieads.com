@@ -12,7 +12,7 @@ interface Props {
 }
 
 const getTone = (s: number) => (s >= 80 ? 'good' : s >= 65 ? 'ok' : s >= 50 ? 'warn' : 'bad');
-const TONE_COLOR: Record<string, string> = { good: '#16a34a', ok: '#f26522', warn: '#d97706', bad: '#dc2626' };
+const TONE_COLOR: Record<string, string> = { good: '#16a34a', ok: '#E8478C', warn: '#d97706', bad: '#dc2626' };
 
 const getGrade = (s: number) => {
   if (s >= 80) return 'A';

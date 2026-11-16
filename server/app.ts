@@ -45,6 +45,7 @@ import { blueskyClient, clientMetadata } from "./social/bluesky-oauth.js";
 import { oauthRouter, publicOrigin } from "./routes/api-oauth.js";
 import { restNotFound, restRouter } from "./routes/api-rest.js";
 import { scheduledAgentsRouter } from "./routes/api-scheduled-agents.js";
+import { tiktokRouter } from "./routes/api-tiktok.js";
 import { SKILL_ROUTE_TO_OPERATION, OPERATION_COSTS } from "./creditConfig.js";
 import { supabaseAdmin, billingUserOf } from "./supabaseServer.js";
 import { deepStripDashes } from "./utils/noEmDash.js";
@@ -149,6 +150,8 @@ app.use("/api/ads-library", adsLibraryRouter);
 
 // ─── AI Agent Chat ─────────────────────────────────────
 app.use("/api/workspaces", workspacesRouter);
+// DNVB: the TikTok fleet (100+ accounts per workspace)
+app.use("/api/tiktok", tiktokRouter);
 app.use("/api/agent", agentRouter);
 
 // ─── Superadmin Dashboard API ──────────────────────────

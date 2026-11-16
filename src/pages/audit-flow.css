@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    Audit flow + hero onboarding modal (zf-*)
    Same language as the landing page and dashboard:
-   system font, clean white, orange #F26522, soft motion
+   system font, clean white, orange #E8478C, soft motion
    ═══════════════════════════════════════════════════════ */
 
 :root {
@@ -9,8 +9,8 @@
   --zf-ink-2: #505050;
   --zf-ink-3: #8a8a8a;
   --zf-line: #ececec;
-  --zf-accent: #f26522;
-  --zf-accent-soft: #fff1e8;
+  --zf-accent: #E8478C;
+  --zf-accent-soft: #FDEEF5;
   --zf-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
@@ -47,14 +47,14 @@
   font-size: 12.5px; font-weight: 500; color: var(--zf-ink-2); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
 }
 .zf-pill.is-good { background: #ecfdf3; border-color: #c9f0d8; color: #15803d; }
-.zf-pill.is-ok { background: var(--zf-accent-soft); border-color: #ffd9c2; color: #c2410c; }
+.zf-pill.is-ok { background: var(--zf-accent-soft); border-color: #ffd9c2; color: #B8306E; }
 .zf-pill.is-warn { background: #fff8e6; border-color: #fde7b0; color: #b45309; }
 .zf-pill.is-bad { background: #fef2f2; border-color: #fbd0d0; color: #b91c1c; }
 .zf-live { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); animation: zfPulse 1.8s ease-out infinite; display: inline-block; }
 .zf-live.is-off { background: #dc2626; animation: none; }
 @keyframes zfPulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); } 100% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); } }
 
-.zf-orb { position: relative; flex-shrink: 0; display: inline-flex; width: 34px; height: 34px; border-radius: 50%; padding: 2px; background: conic-gradient(from 0deg, #f26522, #ffb38a, #ffffff, #f26522); }
+.zf-orb { position: relative; flex-shrink: 0; display: inline-flex; width: 34px; height: 34px; border-radius: 50%; padding: 2px; background: conic-gradient(from 0deg, #E8478C, #ffb38a, #ffffff, #E8478C); }
 .zf-orb.is-active { animation: zfSpin 2.4s linear infinite; }
 .zf-orb-core { flex: 1; border-radius: 50%; background: var(--zf-ink); color: #fff; display: flex; align-items: center; justify-content: center; }
 .zf-orb.is-active .zf-orb-core { animation: zfSpin 2.4s linear infinite reverse; }
@@ -148,7 +148,7 @@
 
 /* ── Audit progress ───────────────────────────────────── */
 .zf-progress-hero { padding: 40px 32px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; }
-.zf-progress-hero .zf-orb-lg { margin-bottom: 22px; box-shadow: 0 20px 50px rgba(242, 101, 34, 0.25); }
+.zf-progress-hero .zf-orb-lg { margin-bottom: 22px; box-shadow: 0 20px 50px rgba(232, 71, 140, 0.25); }
 .zf-progress-hero h1 { margin: 0 0 6px; font-size: clamp(26px, 3.4vw, 36px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.12; }
 .zf-progress-url { margin: 0 0 26px; font-size: 14px; color: var(--zf-ink-3); word-break: break-all; }
 .zf-overall { width: 100%; max-width: 520px; }

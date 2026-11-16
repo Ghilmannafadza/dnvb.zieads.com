@@ -10,6 +10,11 @@ export interface SidebarConnection {
   display_name?: string;
   avatar_url?: string;
   status?: string;
+  /** DNVB: one entry per TikTok account */
+  account_id?: string;
+  open_id?: string;
+  label?: string | null;
+  group?: string | null;
 }
 
 let cache: SidebarConnection[] | null = null;

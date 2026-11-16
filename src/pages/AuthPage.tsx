@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import ZieAdsLogo, { ZieAdsWordmark } from '../components/ZieAdsLogo';
+import DnvbLogo from '../components/DnvbLogo';
 import SocialIcon from '../components/v3/SocialIcon';
 import './landing/landing-v2.css';
 import './landing/visuals.css';
@@ -28,7 +28,7 @@ export default function AuthPage() {
   if (!redirectFrom && targetPlan) {
     redirectFrom = `/pricing?plan=${targetPlan}&yearly=${targetYearly || 'false'}`;
   }
-  const from = redirectFrom || '/analyst';
+  const from = redirectFrom || '/accounts';
 
   const [email, setEmail]       = useState((location.state as any)?.email || '');
   const [password, setPassword] = useState('');
@@ -106,8 +106,7 @@ export default function AuthPage() {
         <div className="za-auth-form-col">
           <header className="za-auth-top">
             <button className="za-auth-brand" onClick={() => navigate('/')}>
-              <ZieAdsLogo size={26} />
-              <span><ZieAdsWordmark /></span>
+              <DnvbLogo height={22} />
             </button>
             <button className="za-auth-back" onClick={() => navigate('/')}>
               <ArrowLeft size={14} /> Back to home
@@ -226,34 +225,31 @@ export default function AuthPage() {
 /*
   Showcase column.
   Design read: auth screen for Indonesian SMB owners and social media managers, in the
-  ZieAds language (white, system font, orange #F26522 as the one accent).
+  ZieAds language (white, system font, orange #E8478C as the one accent).
   Dial: ENERGY 1 / RHYTHM 1 / MOTION 1 (hover states only).
   Purpose: show the one thing a new account gets, Zie's daily briefing, so the person
   knows what they are signing up for. It is a static example, labelled as one, with no
   loops: the form on the left is the focal point and nothing competes with it.
   Channels listed are the ones ZieAds really connects today (see ConnectionsPage).
 */
+/* DNVB: TikTok only */
 const CHANNELS = [
-  { key: 'instagram', label: 'Instagram' },
-  { key: 'tiktok', label: 'TikTok' },
-  { key: 'linkedin', label: 'LinkedIn' },
-  { key: 'meta_ads', label: 'Meta Ads' },
-  { key: 'google_ads', label: 'Google Ads' },
+  { key: 'tiktok', label: 'TikTok accounts' },
   { key: 'tiktok_ads', label: 'TikTok Ads' },
 ];
 
 const EXAMPLE = [
-  { k: 'Needs a reply', t: '3 comments ask about price and stock', d: 'Waiting since last night on your Reel. Zie drafted replies for you to check.' },
-  { k: 'What changed', t: 'Reach up on Instagram, flat on TikTok', d: 'The carousel from Tuesday did most of the work.' },
-  { k: 'Do today', t: 'Post the behind-the-scenes video at 19:00', d: 'Your audience is most active then. A draft is on the calendar.' },
+  { k: 'Needs attention', t: '3 of 128 accounts need a reconnect', d: 'Their TikTok sign in ended. One click each from the Accounts page.' },
+  { k: 'What changed', t: 'Skincare group up 4.2K followers this week', d: '@glowup.id drove most of it with one video at 1.1M views.' },
+  { k: 'Do today', t: '14 accounts have not posted for 14 days', d: 'Zie drafted a batch for them. Review it on the calendar.' },
 ];
 
 function AuthShowcase() {
   return (
-    <aside className="za-show" aria-label="What you get with ZieAds">
+    <aside className="za-show" aria-label="What you get with dnvb TikTok Hub">
       <div className="za-show-copy">
-        <h2>Every account in one place. One briefing every morning.</h2>
-        <p>Zie checks your channels overnight and tells you what needs you, what changed and what to do next.</p>
+        <h2>Every TikTok account in one place. 100+ of them.</h2>
+        <p>Connect your brand, store and creator accounts, schedule in bulk, and let Zie tell you which accounts need you today.</p>
       </div>
 
       <figure className="za-brief">

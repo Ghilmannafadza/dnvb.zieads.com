@@ -260,14 +260,14 @@ export function TextRollButton({
 }) {
   const bgClass =
     variant === 'orange'
-      ? 'bg-[#F26522] hover:bg-[#e05a1a]'
+      ? 'bg-[#E8478C] hover:bg-[#D63A7C]'
       : variant === 'white'
         ? 'bg-white hover:bg-gray-50'
         : 'bg-gray-900 hover:bg-black';
   const textColor = variant === 'white' ? 'text-gray-900' : 'text-white';
   const arrowBg = variant === 'white' ? 'bg-gray-900' : 'bg-white';
   const arrowColor =
-    variant === 'orange' ? 'text-[#F26522]' : variant === 'white' ? 'text-white' : 'text-gray-900';
+    variant === 'orange' ? 'text-[#E8478C]' : variant === 'white' ? 'text-white' : 'text-gray-900';
 
   return (
     <button

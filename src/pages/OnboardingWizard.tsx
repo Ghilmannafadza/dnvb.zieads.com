@@ -28,7 +28,7 @@ import {
   Clock
 } from 'lucide-react';
 
-const ACCENT_BLUE = '#F26522';
+const ACCENT_BLUE = '#E8478C';
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
@@ -96,14 +96,12 @@ export default function OnboardingWizard() {
   // Step 6 configurations
   // What each connector really does today (spec 8). Keep these claims honest.
   const platformsActive = [
-    { id: "instagram", name: "Instagram", desc: "Publishing, insights, comments, briefings" },
-    { id: "facebook", name: "Facebook", desc: "Page publishing, insights, comments, briefings" },
-    { id: "tiktok", name: "TikTok", desc: "Upload to your TikTok inbox, profile stats" },
-    { id: "linkedin", name: "LinkedIn", desc: "Posts with images or video on your profile" }
+    // DNVB: TikTok is the only connector, one workspace holds many accounts
+    { id: "tiktok", name: "TikTok", desc: "Many accounts in one workspace: stats, videos, scheduling and publishing" }
   ];
 
   // Coming soon platforms are listed as text, no logos (CLAUDE.md icon rule)
-  const platformsSoon = ["YouTube", "Threads", "Pinterest", "X"];
+  const platformsSoon: string[] = [];
 
   // Step 7 highlights list
   const capabilityList = [
@@ -1011,9 +1009,11 @@ export default function OnboardingWizard() {
             </div>
 
             {/* Coming Soon Platforms, text only */}
-            <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#64748B', margin: '0 0 32px' }}>
-              Coming soon: {platformsSoon.join(', ')}
-            </p>
+            {platformsSoon.length > 0 && (
+              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#64748B', margin: '0 0 32px' }}>
+                Coming soon: {platformsSoon.join(', ')}
+              </p>
+            )}
 
             {/* Step Controls */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -1236,7 +1236,7 @@ export default function OnboardingWizard() {
                   left: '-12px',
                   right: '-12px',
                   bottom: '-12px',
-                  background: 'linear-gradient(135deg, #F26522 0%, #a78bfa 50%, #EC4899 100%)',
+                  background: 'linear-gradient(135deg, #E8478C 0%, #a78bfa 50%, #EC4899 100%)',
                   filter: 'blur(32px)',
                   opacity: 0.12,
                   zIndex: 0,
@@ -1302,7 +1302,7 @@ export default function OnboardingWizard() {
         .ob-field > span { font-weight: 600; color: #1A1A1A; }
         .ob-field small { color: #64748B; font-size: 0.75rem; }
         .ob-field input, .ob-field select { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 0.9rem; background: #fff; color: #1A1A1A; min-width: 0; width: 100%; box-sizing: border-box; }
-        .ob-field input:focus, .ob-field select:focus { outline: 2px solid rgba(242,101,34,0.35); outline-offset: 0; border-color: #F26522; }
+        .ob-field input:focus, .ob-field select:focus { outline: 2px solid rgba(232, 71, 140,0.35); outline-offset: 0; border-color: #E8478C; }
         .ob-row { display: flex; gap: 8px; }
         .ob-scan { flex-shrink: 0; border: 1px solid var(--border); background: #FAF8F5; border-radius: 8px; padding: 0 14px; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: #1A1A1A; }
         .ob-scan:disabled { opacity: 0.6; cursor: progress; }

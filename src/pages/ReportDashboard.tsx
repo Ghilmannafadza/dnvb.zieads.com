@@ -706,7 +706,7 @@ export default function ReportDashboard() {
                     onClick={() => setActiveTab(tab)}
                     className={`zd-chip is-accent ${active ? 'is-active' : ''}`}
                   >
-                    <NounIcon name={TAB_ICONS[tab]} size={14} color={active ? '#fff' : '#F26522'} />
+                    <NounIcon name={TAB_ICONS[tab]} size={14} color={active ? '#fff' : '#E8478C'} />
                     <span>{tab}</span>
                   </button>
                 );

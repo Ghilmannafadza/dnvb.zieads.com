@@ -20,6 +20,7 @@ import { publishScheduledPost, runDuePosts } from "../publish/publisher.js";
 import { logActivity } from "../activity.js";
 import { parseBulkCsv } from "../publish/bulkCsv.js";
 import { getDecryptedToken } from "../utils/tokenHelper.js";
+import { resolveOpenId } from "../tiktok/accounts.js";
 import { bestTimes } from "../publish/bestTimes.js";
 
 export const postsRouter = Router();
@@ -249,7 +250,9 @@ postsRouter.post("/posts/bulk", requireAuth, async (req: any, res) => {
 /* TikTok creator info for the posting screen (spec 9.2). With video.publish granted
    this comes from TikTok; otherwise only the nickname we stored is returned. */
 postsRouter.get("/tiktok/creator-info", requireAuth, async (req: any, res) => {
-  const conn = await getDecryptedToken(req.userId, "tiktok");
+  // DNVB: ?account_id= picks one of the workspace's TikTok accounts
+  const openId = await resolveOpenId(req.userId, req.query.account_id ? String(req.query.account_id) : null);
+  const conn = await getDecryptedToken(req.userId, "tiktok", openId);
   if (!conn) return res.json({ success: true, creator: null });
   const base = { nickname: conn.displayName || conn.username, source: "profile" };
   if (!conn.scopes.split(/[ ,]+/).includes("video.publish")) return res.json({ success: true, creator: base });

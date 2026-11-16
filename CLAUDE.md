@@ -38,3 +38,9 @@
 - UI, copy and code work follows antislop (MIT, github.com/miqdadbadjuber/anti-slop), copied to `docs/antislop/`. Read `docs/antislop/antislop.md` (core) plus the one for the task: `antislop-ui.md`, `antislop-copywriting.md`, `antislop-layoutmobile.md`, `antislop-human.md`, `antislop-code.md`.
 - Design direction and dials live in `DESIGN.md`. Product and auth screens: ENERGY 1 / RHYTHM 1 / MOTION 1. Write the purpose of any animation in a comment next to it.
 - The files in `docs/antislop/` are third-party text kept as published (they quote em dashes as examples); the no em dash check does not scan `docs/`.
+
+## DNVB (dnvb.zieads.com)
+- This repo is the DNVB TikTok Hub: TikTok is the only connector and one workspace holds 100+ TikTok accounts. See README.md.
+- Anything TikTok account related goes through `server/tiktok/accounts.ts` (save, find by account, refresh, sync, fleet list). Never query `social_connections` with `.maybeSingle()` per platform: there are many rows per platform.
+- Posts name their account in `scheduled_posts.platform_account_id` (connected_accounts id or open_id); resolve with `resolveOpenId`.
+- Brand: dnvb wordmark (`DnvbLogo`), accent pink `#E8478C` in the dashboard, `#F55D9E` on the landing page.

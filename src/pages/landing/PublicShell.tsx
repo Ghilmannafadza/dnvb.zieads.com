@@ -30,7 +30,7 @@ export default function PublicShell({ children, title, description }: { children
         .ps-main h3 { font-size: 16px; font-weight: 650; margin: 22px 0 6px; }
         .ps-main p, .ps-main li { font-size: 15.5px; line-height: 1.65; color: #404040; }
         .ps-main ul, .ps-main ol { padding-left: 22px; }
-        .ps-main a { color: #c2410c; }
+        .ps-main a { color: #B8306E; }
         .ps-lede { font-size: 18px !important; color: #505050 !important; max-width: 680px; }
         .ps-box { margin: 22px 0; padding: 20px 22px; border: 1px solid #ececec; border-radius: 16px; background: #fff; }
         .ps-table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14.5px; }
@@ -38,7 +38,7 @@ export default function PublicShell({ children, title, description }: { children
         .ps-table th { font-weight: 650; color: #111; background: #fafafa; }
         .ps-table td:first-child { font-weight: 600; color: #111; }
         .ps-input { height: 42px; padding: 0 14px; border: 1px solid #e2e2e2; border-radius: 10px; font: inherit; font-size: 15px; min-width: 240px; }
-        .ps-btn { height: 42px; padding: 0 18px; border: none; border-radius: 10px; background: #f26522; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+        .ps-btn { height: 42px; padding: 0 18px; border: none; border-radius: 10px; background: #E8478C; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
         .ps-note { font-size: 13.5px !important; color: #717171 !important; }
         @media (max-width: 640px) { .ps-table { font-size: 13px; } .ps-input { min-width: 0; width: 100%; } }
       `}</style>

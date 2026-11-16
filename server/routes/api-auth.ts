@@ -9,6 +9,7 @@ import { FACEBOOK_SCOPES, GRAPH_VERSION } from "../utils/facebookApi.js";
 import { handleFacebookCallback, selectFacebookPage, listFacebookPages } from "../facebook/connect.js";
 import { deletePlatformData, handlePlatformDeletion, parseMetaSignedRequest } from "../dataDeletion.js";
 import { logActivity } from "../activity.js";
+import { saveTikTokConnection, canAddTikTokAccount, syncTikTokAccounts, disconnectTikTokAccount, findInvite, resolveOpenId } from "../tiktok/accounts.js";
 
 export const authRouter = Router();
 
@@ -23,7 +24,9 @@ async function requireAuth(req: any, res: any, next: any) {
  * 1. Initiate connection (OAuth Connect)
  * Supports both GET redirects and POST json URL retrieval.
  */
+/* DNVB: TikTok is the only connector. The other callbacks below stay for reference but cannot be started. */
 export const CONNECT_PLATFORMS = ["instagram", "facebook", "tiktok", "linkedin"] as const;
+const ENABLED_CONNECT = new Set(["tiktok"]);
 type ConnectPlatform = (typeof CONNECT_PLATFORMS)[number];
 
 const ENV_REQUIRED: Record<ConnectPlatform, string> = {
@@ -47,16 +50,27 @@ export function buildAuthUrl(platform: ConnectPlatform, state: string, redirectB
   }
   if (platform === "tiktok") {
     const scopes = process.env.TIKTOK_SCOPES || "user.info.basic,user.info.profile,user.info.stats,video.list";
-    return `https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=${scopes}&response_type=code&redirect_uri=${cb("tiktok")}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+    // disable_auto_auth=1: TikTok always shows the account screen, so the next account can be added
+    // without the browser silently reusing the account that was connected last
+    return `https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&scope=${scopes}&response_type=code&redirect_uri=${cb("tiktok")}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256&disable_auto_auth=1`;
   }
   return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${cb("linkedin")}&state=${state}&scope=openid%20profile%20email%20w_member_social`;
 }
 
-async function startConnect(platform: string, userId: string): Promise<{ url?: string; error?: string; status?: number }> {
-  if (!(CONNECT_PLATFORMS as readonly string[]).includes(platform)) return { error: "Invalid connection platform", status: 400 };
+interface ConnectOptions {
+  inviteId?: string | null;
+  reconnect?: string | null;
+}
+
+async function startConnect(platform: string, userId: string, opts: ConnectOptions = {}): Promise<{ url?: string; error?: string; status?: number }> {
+  if (!(CONNECT_PLATFORMS as readonly string[]).includes(platform) || !ENABLED_CONNECT.has(platform)) return { error: "Only TikTok accounts can be connected here.", status: 400 };
   const p = platform as ConnectPlatform;
   if (!process.env[ENV_REQUIRED[p]]) return { error: `${ENV_REQUIRED[p]} environment variable is missing on the server.`, status: 500 };
-  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://app.zieads.com";
+  if (p === "tiktok" && !opts.reconnect) {
+    const room = await canAddTikTokAccount(userId);
+    if (!room.ok) return { error: `This workspace holds ${room.used} of ${room.limit} TikTok accounts on its plan. Upgrade or disconnect an account first.`, status: 403 };
+  }
+  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://dnvb.zieads.com";
   const state = crypto.randomBytes(16).toString("hex");
   let codeVerifier: string | undefined;
   let codeChallenge: string | undefined;
@@ -65,7 +79,10 @@ async function startConnect(platform: string, userId: string): Promise<{ url?: s
     codeVerifier = crypto.randomBytes(32).toString("hex");
     codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
   }
-  const { error: insertErr } = await supabaseAdmin.from("oauth_states").insert({ state, user_id: userId, platform: p, code_verifier: codeVerifier || null });
+  const row: Record<string, unknown> = { state, user_id: userId, platform: p, code_verifier: codeVerifier || null };
+  if (opts.inviteId) row.invite_id = opts.inviteId;
+  if (opts.reconnect) row.reconnect_account = opts.reconnect;
+  const { error: insertErr } = await supabaseAdmin.from("oauth_states").insert(row);
   if (insertErr) {
     console.error("[OAuth] Database insert failed for oauth_states:", insertErr.message);
     return { error: "Failed to initialize secure connection handshake", status: 500 };
@@ -80,13 +97,30 @@ authRouter.get("/:platform/connect", async (req, res) => {
   req.headers.authorization = `Bearer ${token}`;
   const userId = await getUserIdFromRequest(req);
   if (!userId) return res.status(401).json({ error: "Unauthorized: Invalid session" });
-  const r = await startConnect(req.params.platform, userId);
-  if (!r.url) return res.status(r.status || 500).json({ error: r.error });
+  const reconnect = req.query.reconnect ? await resolveOpenId(userId, String(req.query.reconnect)) : null;
+  const r = await startConnect(req.params.platform, userId, { reconnect });
+  if (!r.url) {
+    const base = process.env.OAUTH_REDIRECT_BASE_URL || "https://dnvb.zieads.com";
+    if (r.status === 403) return res.redirect(`${base}/connections?error=tiktok_limit_reached`);
+    return res.status(r.status || 500).json({ error: r.error });
+  }
+  return res.redirect(r.url);
+});
+
+/* DNVB connect link: a creator opens /api/auth/tiktok/invite/:token, signs in to TikTok,
+   and the account lands in the workspace that made the link. No ZieAds login needed. */
+authRouter.get("/tiktok/invite/:token", async (req, res) => {
+  const base = process.env.OAUTH_REDIRECT_BASE_URL || "https://dnvb.zieads.com";
+  const { invite, reason } = await findInvite(String(req.params.token));
+  if (!invite) return res.redirect(`${base}/connect/tiktok?status=${reason}`);
+  const r = await startConnect("tiktok", invite.user_id, { inviteId: invite.id });
+  if (!r.url) return res.redirect(`${base}/connect/tiktok?status=${r.status === 403 ? "limit_reached" : "error"}`);
   return res.redirect(r.url);
 });
 
 authRouter.post("/:platform/connect", requireAuth, async (req: any, res) => {
-  const r = await startConnect(req.params.platform, req.userId);
+  const reconnect = req.body?.reconnect ? await resolveOpenId(req.userId, String(req.body.reconnect)) : null;
+  const r = await startConnect(req.params.platform, req.userId, { reconnect });
   if (!r.url) return res.status(r.status || 500).json({ error: r.error });
   return res.json({ url: r.url });
 });
@@ -114,7 +148,7 @@ authRouter.post("/facebook/pages/select", requireAuth, async (req: any, res) => 
 // A. Instagram Callback
 authRouter.get("/instagram/callback", async (req, res) => {
   const { code, state, error } = req.query;
-  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://app.zieads.com";
+  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://dnvb.zieads.com";
 
   if (error) {
     return res.redirect(`${redirectBase}/connections?error=instagram_denied`);
@@ -229,7 +263,7 @@ authRouter.get("/instagram/callback", async (req, res) => {
       scopes_granted: grantedPermissions || "instagram_business_basic,instagram_business_manage_comments,instagram_business_manage_insights,instagram_business_content_publish",
       is_active: true,
       last_refreshed_at: new Date().toISOString(),
-    }, { onConflict: "user_id,platform" });
+    }, { onConflict: "user_id,platform,platform_user_id" });
 
     if (upsertErr) {
       console.error("[OAuth] Failed to upsert Instagram connection details:", upsertErr.message);
@@ -281,162 +315,98 @@ authRouter.get("/instagram/callback", async (req, res) => {
   }
 });
 
-// B. TikTok Callback
+// B. TikTok Callback (DNVB: adds or refreshes one of many TikTok accounts)
 authRouter.get("/tiktok/callback", async (req, res) => {
   const { code, state, error } = req.query;
-  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://app.zieads.com";
+  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://dnvb.zieads.com";
+  // Invited creators go back to the public thank-you page, the team goes back to Accounts
+  let back = (q: string) => `${redirectBase}/connections?${q}`;
 
-  if (error) {
-    return res.redirect(`${redirectBase}/connections?error=tiktok_denied`);
-  }
-
-  if (!code || !state) {
-    return res.redirect(`${redirectBase}/connections?error=tiktok_invalid_callback`);
-  }
+  if (!state) return res.redirect(back("error=tiktok_invalid_callback"));
 
   try {
-    // Verify CSRF state
-    const { data: stateData, error: dbErr } = await supabaseAdmin
-      .from("oauth_states")
-      .select("*")
-      .eq("state", state)
-      .eq("platform", "tiktok")
-      .single();
-
+    const { data: stateData, error: dbErr } = await supabaseAdmin.from("oauth_states").select("*").eq("state", state).eq("platform", "tiktok").single();
     if (dbErr || !stateData) {
       console.warn("[OAuth] TikTok state verification failed.");
-      return res.redirect(`${redirectBase}/connections?error=tiktok_csrf`);
+      return res.redirect(back("error=tiktok_csrf"));
     }
-
-    // Delete state record
     await supabaseAdmin.from("oauth_states").delete().eq("state", state);
+    if (stateData.invite_id) back = (q: string) => `${redirectBase}/connect/tiktok?${q}`;
+    if (error) return res.redirect(back("error=tiktok_denied"));
+    if (!code) return res.redirect(back("error=tiktok_invalid_callback"));
 
-    // Exchange TikTok code
-    const tokenUrl = "https://open.tiktokapis.com/v2/oauth/token/";
-    const bodyParams = new URLSearchParams();
-    bodyParams.append("client_key", process.env.TIKTOK_CLIENT_KEY || "");
-    bodyParams.append("client_secret", process.env.TIKTOK_CLIENT_SECRET || "");
-    bodyParams.append("code", code as string);
-    bodyParams.append("grant_type", "authorization_code");
-    bodyParams.append("redirect_uri", `${redirectBase}/api/auth/tiktok/callback`);
-    bodyParams.append("code_verifier", stateData.code_verifier || "");
-
-    const tokenRes = await fetch(tokenUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: bodyParams.toString(),
+    // Exchange the code (PKCE)
+    const bodyParams = new URLSearchParams({
+      client_key: process.env.TIKTOK_CLIENT_KEY || "",
+      client_secret: process.env.TIKTOK_CLIENT_SECRET || "",
+      code: String(code),
+      grant_type: "authorization_code",
+      redirect_uri: `${redirectBase}/api/auth/tiktok/callback`,
+      code_verifier: stateData.code_verifier || "",
     });
+    const tokenRes = await fetch("https://open.tiktokapis.com/v2/oauth/token/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: bodyParams.toString() });
+    const tokenData: any = await tokenRes.json().catch(() => ({}));
+    if (!tokenRes.ok || !tokenData.access_token) {
+      console.error("[OAuth] TikTok token exchange failed:", JSON.stringify(tokenData));
+      return res.redirect(back("error=tiktok_exchange_failed"));
+    }
+    const openId = String(tokenData.open_id || "");
+    if (!openId) return res.redirect(back("error=tiktok_invalid_callback"));
 
-    if (!tokenRes.ok) {
-      const errText = await tokenRes.text();
-      console.error("[OAuth] TikTok token exchange failed:", errText);
-      return res.redirect(`${redirectBase}/connections?error=tiktok_exchange_failed`);
+    // A reconnect must be the same account the team clicked
+    if (stateData.reconnect_account && stateData.reconnect_account !== openId) {
+      return res.redirect(back("error=tiktok_wrong_account"));
+    }
+    const room = await canAddTikTokAccount(stateData.user_id, openId);
+    if (!room.ok) return res.redirect(back("error=tiktok_limit_reached"));
+
+    // Profile, asking only for fields the granted scopes allow
+    const granted = String(tokenData.scope || "user.info.basic").split(/[ ,]+/);
+    const fields = ["open_id", "union_id", "display_name", "avatar_url"];
+    if (granted.includes("user.info.profile")) fields.push("username", "bio_description");
+    if (granted.includes("user.info.stats")) fields.push("follower_count");
+    let user: any = {};
+    const profileRes = await fetch(`https://open.tiktokapis.com/v2/user/info/?fields=${fields.join(",")}`, { headers: { Authorization: `Bearer ${tokenData.access_token}` } });
+    if (profileRes.ok) user = (await profileRes.json())?.data?.user || {};
+    else console.error("[OAuth] TikTok profile fetch failed:", profileRes.status, await profileRes.text());
+
+    let invite: any = null;
+    if (stateData.invite_id) {
+      const { data } = await supabaseAdmin.from("tiktok_connect_invites").select("*").eq("id", stateData.invite_id).maybeSingle();
+      invite = data;
     }
 
-    const tokenData = await tokenRes.json();
-    const accessToken = tokenData.access_token;
-    const refreshToken = tokenData.refresh_token;
-    const expiresIn = tokenData.expires_in || 86400; // default 24h expiration
-    const openId = tokenData.open_id || "";
-
-    // Fetch user profile from TikTok APIs dynamically based on granted scopes to prevent 403 error on restricted fields
-    const grantedScopes = (tokenData.scope || "user.info.basic").split(",");
-    const fieldsList = ["open_id", "union_id", "display_name", "avatar_url"];
-    
-    if (grantedScopes.includes("user.info.profile")) {
-      fieldsList.push("bio_description");
-    }
-    if (grantedScopes.includes("user.info.stats")) {
-      fieldsList.push("follower_count");
-    }
-
-    const fields = fieldsList.join(",");
-    const profileUrl = `https://open.tiktokapis.com/v2/user/info/?fields=${fields}`;
-    
-    console.log(`[OAuth] Fetching TikTok profile with scopes: ${tokenData.scope} and fields: ${fields}`);
-    const profileRes = await fetch(profileUrl, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
+    await saveTikTokConnection(stateData.user_id, {
+      openId,
+      username: user.username || user.display_name || `user_${openId.slice(-6)}`,
+      displayName: user.display_name || `TikTok ${openId.slice(-6)}`,
+      avatarUrl: user.avatar_url || "",
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token || null,
+      expiresInSec: tokenData.expires_in || 86400,
+      refreshExpiresInSec: tokenData.refresh_expires_in || null,
+      scopes: tokenData.scope || "",
+      label: invite?.label || null,
+      group: invite?.account_group || null,
+      via: invite ? "invite" : "dashboard",
     });
+    if (invite) await supabaseAdmin.from("tiktok_connect_invites").update({ used_count: (invite.used_count || 0) + 1 }).eq("id", invite.id);
 
-    let platformUsername = "";
-    let platformDisplayName = "";
-    let platformAvatarUrl = "";
+    // First numbers for this account only; the cron does the rest of the fleet
+    await syncTikTokAccounts(stateData.user_id, [openId]).catch((e) => console.error("[OAuth] first TikTok sync failed:", e.message));
 
-    if (profileRes.ok) {
-      const profileData = await profileRes.json();
-      console.log("[OAuth] TikTok profile fetch success:", JSON.stringify(profileData));
-      const user = profileData.data?.user;
-      if (user) {
-        platformUsername = user.display_name || user.username || "";
-        platformDisplayName = user.display_name || "";
-        platformAvatarUrl = user.avatar_url || "";
-      }
-    } else {
-      const errText = await profileRes.text();
-      console.error("[OAuth] TikTok profile fetch failed status:", profileRes.status, "body:", errText);
-    }
-
-    // Fallback if profile name could not be fetched
-    if (!platformUsername) {
-      platformUsername = `user_${openId.slice(-6)}`;
-    }
-    if (!platformDisplayName) {
-      platformDisplayName = `TikTok User (${openId.slice(-6)})`;
-    }
-
-
-    const encryptedAccess = encrypt(accessToken);
-    const encryptedRefresh = refreshToken ? encrypt(refreshToken) : null;
-    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
-
-    const { error: upsertErr } = await supabaseAdmin.from("social_connections").upsert({
-      user_id: stateData.user_id,
-      platform: "tiktok",
-      platform_user_id: String(openId),
-      platform_username: platformUsername,
-      platform_display_name: platformDisplayName,
-      platform_avatar_url: platformAvatarUrl,
-      access_token: encryptedAccess,
-      refresh_token: encryptedRefresh,
-      token_expires_at: expiresAt,
-      scopes_granted: tokenData.scope || "user.info.basic,user.info.profile",
-      is_active: true,
-      last_refreshed_at: new Date().toISOString(),
-    }, { onConflict: "user_id,platform" });
-
-    if (upsertErr) {
-      console.error("[OAuth] Failed to upsert TikTok connection:", upsertErr.message);
-      return res.redirect(`${redirectBase}/connections?error=tiktok_db_save_failed`);
-    }
-
-    // Mirror connection in connected_accounts for general feature compatibility
-    const { data: connData, error: connErr } = await supabaseAdmin.from("connected_accounts").upsert({
-      user_id: stateData.user_id,
-      platform: "tiktok",
-      platform_account_id: String(openId),
-      account_handle: `@${platformUsername}`,
-      connection_method: "oauth",
-      is_active: true,
-      connected_at: new Date().toISOString(),
-      metadata: { is_real_oauth: true }
-    }, { onConflict: "user_id,platform,platform_account_id" }).select();
-
-    if (!connErr && connData && connData.length > 0) {
-      await syncTikTokInsightsForUser(stateData.user_id);
-    }
-
-    return res.redirect(`${redirectBase}/connections?connected=tiktok`);
+    const handle = encodeURIComponent(user.username || user.display_name || "");
+    return res.redirect(back(`connected=tiktok&account=${handle}`));
   } catch (err: any) {
     console.error("[OAuth] Unexpected TikTok callback error:", err);
-    return res.redirect(`${redirectBase}/connections?error=tiktok_callback_failed`);
+    return res.redirect(back("error=tiktok_callback_failed"));
   }
 });
 
 // C. LinkedIn Callback
 authRouter.get("/linkedin/callback", async (req, res) => {
   const { code, state, error } = req.query;
-  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://app.zieads.com";
+  const redirectBase = process.env.OAUTH_REDIRECT_BASE_URL || "https://dnvb.zieads.com";
 
   if (error) {
     return res.redirect(`${redirectBase}/connections?error=linkedin_denied`);
@@ -522,7 +492,7 @@ authRouter.get("/linkedin/callback", async (req, res) => {
       scopes_granted: tokenData.scope || "openid,profile,email,w_member_social",
       is_active: true,
       last_refreshed_at: new Date().toISOString(),
-    }, { onConflict: "user_id,platform" });
+    }, { onConflict: "user_id,platform,platform_user_id" });
 
     if (upsertErr) {
       console.error("[OAuth] Failed to upsert LinkedIn connection:", upsertErr.message);
@@ -673,8 +643,15 @@ authRouter.post("/threads/data-deletion", async (req: any, res) => {
 });
 
 // TikTok Webhooks for Deauthorization and Deletion (stubs returning 200 OK)
-authRouter.post("/tiktok/deauthorize", async (req, res) => {
-  console.log("[Webhook] TikTok deauthorize triggered.", req.body);
+authRouter.post("/tiktok/deauthorize", async (req: any, res) => {
+  const openId = req.body?.user_openid || req.body?.open_id || req.body?.content?.user_openid;
+  if (openId) {
+    await supabaseAdmin
+      .from("social_connections")
+      .update({ is_active: false, status: "revoked", access_token: "DEAUTHORIZED_BY_PLATFORM", refresh_token: null, updated_at: new Date().toISOString() })
+      .eq("platform", "tiktok")
+      .eq("platform_user_id", String(openId));
+  }
   return res.status(200).send("OK");
 });
 
@@ -698,6 +675,17 @@ authRouter.post("/linkedin/deauthorize", async (req, res) => {
 authRouter.post("/:platform/disconnect", requireAuth, async (req: any, res) => {
   const platform = req.params.platform;
   const userId = req.userId;
+  // DNVB: TikTok disconnects one account (body.account_id), never the whole fleet by accident
+  if (platform === "tiktok") {
+    const openId = await resolveOpenId(userId, req.body?.account_id ? String(req.body.account_id) : null);
+    if (!openId) return res.status(400).json({ error: "Pick the TikTok account to disconnect (account_id)." });
+    try {
+      const deleted = await disconnectTikTokAccount(userId, openId);
+      return res.json({ success: true, platform, account_id: openId, deleted });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
   if (!(CONNECT_PLATFORMS as readonly string[]).includes(platform)) {
     return res.status(400).json({ error: "Invalid platform parameter" });
   }
@@ -714,60 +702,38 @@ authRouter.post("/:platform/disconnect", requireAuth, async (req: any, res) => {
  * 5. Retrieve Connection Status
  */
 authRouter.get("/connections", requireAuth, async (req: any, res) => {
-  const userId = req.userId;
-
+  // DNVB: one entry per TikTok account (the workspace can hold 100+)
   try {
     const { data, error: dbErr } = await supabaseAdmin
       .from("social_connections")
-      .select("platform, platform_username, platform_display_name, platform_avatar_url, platform_account_type, connected_at, token_expires_at, scopes_granted, status, last_error_message, last_synced_at, last_refreshed_at, metadata")
-      .eq("user_id", userId)
-      .eq("is_active", true);
-
-    if (dbErr) {
-      console.error("[OAuth] Failed to fetch active connections:", dbErr.message);
-      return res.status(500).json({ error: "Failed to fetch connections status" });
-    }
-
-    // Map rows to clean schema structure
-    const statusMap: Record<string, any> = {
-      instagram: { connected: false },
-      facebook: { connected: false },
-      tiktok: { connected: false },
-      linkedin: { connected: false },
-      threads: { connected: false },
-      bluesky: { connected: false },
-      mastodon: { connected: false },
-      youtube: { connected: false },
-      pinterest: { connected: false },
-      telegram: { connected: false },
-      discord: { connected: false },
-    };
-
-    data?.forEach((row: any) => {
-      const p = row.platform as string;
-      if (statusMap[p]) {
-        statusMap[p] = {
-          connected: true,
-          username: row.platform_username || "",
-          display_name: row.platform_display_name || "",
-          avatar_url: row.platform_avatar_url || "",
-          account_type: row.platform_account_type || "",
-          connected_at: row.connected_at,
-          token_expires_at: row.token_expires_at,
-          scopes: row.scopes_granted || "",
-          status: row.status || "live",
-          last_error: row.last_error_message || null,
-          last_synced_at: row.last_synced_at || row.last_refreshed_at || null,
-          declined_permissions: row.metadata?.declined_permissions || [],
-          page_count: Array.isArray(row.metadata?.pages) ? row.metadata.pages.length : undefined,
-        } as any;
-      }
-    });
-
-    return res.json(Object.entries(statusMap).map(([platform, info]) => ({
-      platform,
-      ...info,
-    })));
+      .select("id, platform, platform_user_id, platform_username, platform_display_name, platform_avatar_url, platform_account_type, account_label, account_group, connected_at, token_expires_at, scopes_granted, status, last_error_message, last_synced_at, last_refreshed_at, metadata")
+      .eq("user_id", req.userId)
+      .eq("platform", "tiktok")
+      .eq("is_active", true)
+      .order("connected_at", { ascending: true });
+    if (dbErr) return res.status(500).json({ error: "Failed to fetch connections status" });
+    const { data: cas } = await supabaseAdmin.from("connected_accounts").select("id, platform_account_id").eq("user_id", req.userId).eq("platform", "tiktok");
+    const caId = new Map((cas || []).map((c: any) => [c.platform_account_id, c.id]));
+    return res.json(
+      (data || []).map((row: any) => ({
+        platform: "tiktok",
+        connected: true,
+        account_id: caId.get(row.platform_user_id) || row.id,
+        open_id: row.platform_user_id,
+        username: row.platform_username || "",
+        display_name: row.platform_display_name || "",
+        avatar_url: row.platform_avatar_url || "",
+        label: row.account_label || null,
+        group: row.account_group || null,
+        account_type: row.platform_account_type || "",
+        connected_at: row.connected_at,
+        token_expires_at: row.token_expires_at,
+        scopes: row.scopes_granted || "",
+        status: row.status || "live",
+        last_error: row.last_error_message || null,
+        last_synced_at: row.last_synced_at || row.last_refreshed_at || null,
+      }))
+    );
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

@@ -1,69 +1,30 @@
 /*
-  Connections (spec 7.9, P0-2, P0-4).
-  Organic: Instagram, Facebook Pages, TikTok, LinkedIn through each platform's OAuth.
-  Paid ads: read-only API access is in review, so the Manual import (CSV) is the path for now.
-  Every card shows status, last sync, granted permissions and token expiry, with Reconnect and Disconnect.
+  DNVB: Connect TikTok. TikTok is the only connector.
+  - Add account: the team signs in to TikTok here (TikTok always shows the account screen, so the next account can be added).
+  - Connect links: send a link to a creator, they sign in on their own phone, the account lands in this workspace.
+  - TikTok Ads: read only, manual CSV import until API access is approved.
+  The full list of connected accounts, with numbers and bulk actions, is on /accounts.
 */
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Download, ExternalLink, KeyRound, Link2, RefreshCw, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, CheckCircle, Copy, Download, Link2, Plus, Trash2, Upload, Users } from 'lucide-react';
 import V3Layout from '../../components/v3/V3Layout';
-import { Button, Card, LoadingState, PageBody, PageHeader, Pill } from '../../components/v3/ui';
+import { Button, Card, CardTitle, LoadingState, PageBody, PageHeader, Pill } from '../../components/v3/ui';
 import SocialIcon from '../../components/v3/SocialIcon';
 import { useDemoMode } from '../../lib/demoStore';
-import { sampleConnections } from '../../data/sample-data';
 import { api, authHeaders } from '../../lib/api';
-import { PLATFORMS, Platform } from '../../lib/platforms';
 import { refreshConnections } from '../../lib/connectionsStore';
 import './connections.css';
 
-type OrganicId = string;
-type AdsId = 'meta_ads' | 'google_ads' | 'tiktok_ads';
-
-// The 12 networks, in the order they come live (src/lib/platforms.ts). Soon ones show a Soon label.
-const ORGANIC = PLATFORMS.map((p) => ({ ...p, icon: p.id }));
-
-const ADS: Array<{ id: AdsId; name: string; icon: string }> = [
-  { id: 'meta_ads', name: 'Meta Ads', icon: 'meta' },
-  { id: 'google_ads', name: 'Google Ads', icon: 'googleads' },
-  { id: 'tiktok_ads', name: 'TikTok Ads', icon: 'tiktok' },
-];
-
-const COMING_SOON = ['LinkedIn Ads', 'Google Business Profile'];
+type AdsId = 'tiktok_ads';
 
 const ERROR_TEXT: Record<string, string> = {
   denied: 'You cancelled the connection. Nothing was changed.',
   csrf: 'The connection link expired. Try again.',
-  no_pages: 'Your Facebook account does not manage any Page. Create a Page or ask for full control of one, then connect again.',
-  invalid_callback: 'The platform sent an incomplete response. Try again.',
+  invalid_callback: 'TikTok sent an incomplete response. Try again.',
   exchange_failed: 'the sign in did not finish.',
-};
-
-interface Conn {
-  platform: string;
-  connected: boolean;
-  username?: string;
-  display_name?: string;
-  avatar_url?: string;
-  account_type?: string;
-  connected_at?: string;
-  token_expires_at?: string | null;
-  scopes?: string;
-  status?: 'live' | 'needs_reconnect' | 'error' | 'revoked';
-  last_error?: string | null;
-  last_synced_at?: string | null;
-  declined_permissions?: string[];
-  page_count?: number;
-}
-
-const ago = (iso?: string | null) => {
-  if (!iso) return 'not synced yet';
-  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  if (h < 48) return `${h} h ago`;
-  return `${Math.round(h / 24)} days ago`;
+  limit_reached: 'this workspace is full on its plan. Upgrade or disconnect an account first.',
+  wrong_account: 'you signed in to a different TikTok account than the one you wanted to reconnect.',
 };
 
 export function expiryInfo(iso?: string | null): { days: number; level: 'ok' | 'soon' | 'expired' } | null {
@@ -72,39 +33,48 @@ export function expiryInfo(iso?: string | null): { days: number; level: 'ok' | '
   return { days, level: days < 0 ? 'expired' : days <= 7 ? 'soon' : 'ok' };
 }
 
+interface Invite {
+  id: string;
+  url: string;
+  label: string | null;
+  account_group: string | null;
+  max_uses: number;
+  used_count: number;
+  expires_at: string;
+  active: boolean;
+}
+
 export default function ConnectionsPage() {
   const demo = useDemoMode();
   const navigate = useNavigate();
-  const [conns, setConns] = useState<Record<string, Conn>>({});
-  const [ads, setAds] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState<{ tone: 'good' | 'bad' | 'warn'; text: string; action?: { label: string; to: string } } | null>(null);
-  const fromOnboarding = !!(useLocation().state as any)?.fromOnboarding;
+  const [fleet, setFleet] = useState<{ used: number; limit: number; groups: string[] } | null>(null);
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
-  const [pagePicker, setPagePicker] = useState<{ pages: any[]; selected: string | null } | null>(null);
-  const [importFor, setImportFor] = useState<AdsId | null>(null);
-  const [formFor, setFormFor] = useState<Platform | null>(null);
-  const [manualFor, setManualFor] = useState<Platform | null>(null);
-  const [tgOpen, setTgOpen] = useState(false);
+  const [ads, setAds] = useState<any>({});
+  const [importOpen, setImportOpen] = useState(false);
+  const [form, setForm] = useState({ label: '', group: '', max_uses: 1, expires_days: 7 });
+  const [copied, setCopied] = useState<string | null>(null);
 
   const load = async () => {
     if (demo.isActive) {
-      const map: Record<string, Conn> = {};
-      sampleConnections.forEach((c) => (map[c.platform] = { platform: c.platform, connected: true, username: c.account_handle, status: 'live', last_synced_at: new Date().toISOString() }));
-      setConns(map);
+      setFleet({ used: 3, limit: 150, groups: ['Skincare', 'Fashion'] });
       setLoading(false);
       return;
     }
     try {
-      const [list, adsStatus] = await Promise.all([api<Conn[]>('/api/auth/connections'), api('/api/v3/ads/status').catch(() => ({ platforms: {} }))]);
-      const map: Record<string, Conn> = {};
-      (Array.isArray(list) ? list : []).forEach((c) => (map[c.platform] = c));
-      setConns(map);
-      setAds(adsStatus.platforms || {});
+      const [f, inv, adsStatus] = await Promise.all([
+        api('/api/tiktok/accounts'),
+        api('/api/tiktok/invites').catch(() => ({ invites: [] })),
+        api('/api/v3/ads/status').catch(() => ({ platforms: {} })),
+      ]);
+      setFleet({ used: f.used, limit: f.limit, groups: f.groups || [] });
+      setInvites(inv.invites || []);
+      setAds(adsStatus.platforms?.tiktok_ads || {});
       refreshConnections();
     } catch (e: any) {
-      setBanner({ tone: 'bad', text: `Could not load connections: ${e.message}` });
+      setBanner({ tone: 'bad', text: `Could not load: ${e.message}` });
     } finally {
       setLoading(false);
     }
@@ -115,59 +85,53 @@ export default function ConnectionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo.isActive]);
 
-  // Result of an OAuth round trip comes back as query parameters
+  // Result of the TikTok round trip comes back as query parameters
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const connected = p.get('connected');
     const error = p.get('error');
     if (connected) {
-      const name = ORGANIC.find((o) => o.id === connected)?.name || connected;
-      const missing = p.get('missing');
-      setBanner(
-        missing
-          ? { tone: 'warn', text: `${name} is connected, but these permissions were switched off: ${missing.replace(/,/g, ', ')}. Publishing needs them. Reconnect and keep every permission on.` }
-          : { tone: 'good', text: `${name} is connected. Zie is reading it and building your first briefing.`, action: { label: 'See your briefing', to: '/analyst' } }
-      );
-      if (connected === 'facebook' && p.get('choose_page')) openPagePicker();
+      const who = p.get('account');
+      setBanner({ tone: 'good', text: `${who ? `@${who}` : 'The TikTok account'} is connected and its first numbers are in. Add the next one, or open the fleet.`, action: { label: 'Open accounts', to: '/accounts' } });
     } else if (error) {
-      const [platform, ...rest] = error.split('_');
-      const key = rest.join('_');
-      const name = ORGANIC.find((o) => o.id === platform)?.name || platform;
-      const detail = p.get('detail');
-      setBanner({ tone: 'bad', text: `${name}: ${ERROR_TEXT[key] || `the connection failed (${key.replace(/_/g, ' ')}). Try again or contact support.`}${detail ? ` ${detail}` : ''}` });
+      const key = error.replace(/^tiktok_/, '');
+      setBanner({ tone: 'bad', text: `TikTok: ${ERROR_TEXT[key] || `the connection failed (${key.replace(/_/g, ' ')}). Try again.`}` });
     }
     if (connected || error) window.history.replaceState({}, document.title, window.location.pathname);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const connect = async (id: OrganicId) => {
+  const connect = async () => {
     if (demo.isActive) return setBanner({ tone: 'warn', text: 'Exit demo mode to connect your own accounts.' });
-    const def = PLATFORMS.find((p) => p.id === id);
-    // Telegram links through the ZieAds bot; Bluesky and Mastodon ask for the handle or server, then sign in there
-    if (def?.connect === 'telegram_bot') return setTgOpen(true);
-    if (def?.connect === 'form' || def?.connect === 'oauth_form') return setFormFor(def);
-    setBusy(id);
+    setBusy('connect');
     try {
-      const j = await api<{ url: string }>(`/api/auth/${id}/connect`, { body: {} });
+      const j = await api<{ url: string }>('/api/auth/tiktok/connect', { body: {} });
       window.location.href = j.url;
     } catch (e: any) {
       setBusy(null);
-      // Sign in is not set up on this server yet: offer the manual way so the user is not stuck
-      if (def?.manualFields) {
-        setManualFor(def);
-        return;
-      }
       setBanner({ tone: 'bad', text: e.message });
     }
   };
 
-  const disconnect = async (id: string) => {
+  const createInvite = async () => {
+    if (demo.isActive) return setBanner({ tone: 'warn', text: 'Exit demo mode to make connect links.' });
+    setBusy('invite');
+    try {
+      const j = await api('/api/tiktok/invites', { body: { label: form.label || undefined, group: form.group || undefined, max_uses: form.max_uses, expires_days: form.expires_days } });
+      setInvites((l) => [j.invite, ...l]);
+      setForm({ ...form, label: '' });
+      copy(j.invite.url, j.invite.id);
+    } catch (e: any) {
+      setBanner({ tone: 'bad', text: e.message });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const revoke = async (id: string) => {
     setBusy(id);
     try {
-      await api(`/api/auth/${id}/disconnect`, { body: {} });
-      setConfirmDisconnect(null);
-      setBanner({ tone: 'good', text: `${ORGANIC.find((o) => o.id === id)?.name || id} is disconnected and the data ZieAds stored from it was deleted.` });
-      await load();
+      await api(`/api/tiktok/invites/${id}`, { method: 'DELETE' });
+      setInvites((l) => l.filter((i) => i.id !== id));
     } catch (e: any) {
       setBanner({ tone: 'bad', text: e.message });
     } finally {
@@ -175,197 +139,27 @@ export default function ConnectionsPage() {
     }
   };
 
-  async function openPagePicker() {
-    try {
-      const j = await api('/api/auth/facebook/pages');
-      setPagePicker({ pages: j.pages || [], selected: j.selected });
-    } catch (e: any) {
-      setBanner({ tone: 'bad', text: e.message });
-    }
-  }
-
-  const choosePage = async (pageId: string) => {
-    setBusy('facebook');
-    try {
-      const j = await api('/api/auth/facebook/pages/select', { body: { page_id: pageId } });
-      setPagePicker(null);
-      setBanner({ tone: 'good', text: `Zie now manages the Page ${j.page.name}.` });
-      await load();
-    } catch (e: any) {
-      setBanner({ tone: 'bad', text: e.message });
-    } finally {
-      setBusy(null);
-    }
+  const copy = (text: string, id: string) => {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1800);
+    });
   };
 
-  const syncFacebook = async () => {
-    setBusy('facebook-sync');
-    try {
-      const r = await api('/api/v3/facebook/sync', { body: {} });
-      setBanner({ tone: 'good', text: `Facebook synced: ${r.posts} posts and ${r.comments} comments checked.` });
-      await load();
-    } catch (e: any) {
-      setBanner({ tone: 'bad', text: e.message });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const liveCount = useMemo(() => ORGANIC.filter((o) => conns[o.id]?.connected).length, [conns]);
-
-  const renderOrganic = (o: (typeof ORGANIC)[number]) => {
-    if (o.status === 'soon') {
-      return (
-        <Card key={o.id} className="zcn-card is-soon">
-          <div className="zcn-head">
-            <span className="zcn-brand">
-              <SocialIcon platform={o.icon} size={26} />
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div className="zcn-name">{o.name}</div>
-              <div className="zcn-type">{o.what}</div>
-            </div>
-            <span className="zcn-status">
-              <Pill tone="neutral">Soon</Pill>
-            </span>
-          </div>
-          <div className="zcn-foot">
-            <Button variant="secondary" full disabled>
-              Soon
-            </Button>
-          </div>
-        </Card>
-      );
-    }
-    const c = conns[o.id];
-    const on = !!c?.connected;
-    const status = c?.status || 'live';
-    const exp = expiryInfo(c?.token_expires_at);
-    const needsReconnect = on && (status === 'needs_reconnect' || status === 'revoked' || exp?.level === 'expired');
-    const scopes = (c?.scopes || '').split(/[ ,]+/).filter(Boolean);
-    return (
-      <Card key={o.id} className={`zcn-card ${on ? 'is-on' : ''}`}>
-        <div className="zcn-head">
-          <span className="zcn-brand">
-            <SocialIcon platform={o.icon} size={26} />
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div className="zcn-name">{o.name}</div>
-            <div className="zcn-type">{o.what}</div>
-          </div>
-          <span className="zcn-status">
-            <Pill tone={!on ? 'neutral' : needsReconnect ? 'bad' : status === 'error' ? 'warn' : 'good'}>{!on ? 'Not connected' : needsReconnect ? 'Needs reconnect' : status === 'error' ? 'Error' : 'Live'}</Pill>
-          </span>
-        </div>
-        <div className="zcn-foot">
-          {on ? (
-            <>
-              <div className="zcn-acct">
-                {c.avatar_url ? <img src={c.avatar_url} alt="" className="zcn-avatar" onError={(e) => ((e.target as HTMLElement).style.display = 'none')} /> : <CheckCircle size={14} className="zcn-check" />}
-                <span className="zcn-acct-handle">{c.display_name || c.username}</span>
-                {c.account_type && <span className="zcn-meta">{c.account_type.toLowerCase()}</span>}
-              </div>
-              <dl className="zcn-facts">
-                <dt>Last sync</dt>
-                <dd>{ago(c.last_synced_at)}</dd>
-                <dt>Permissions</dt>
-                <dd title={scopes.join(', ')}>{scopes.length ? `${scopes.length} granted` : 'reported by the platform'}</dd>
-                {exp && (
-                  <>
-                    <dt>Access</dt>
-                    <dd>{exp.level === 'expired' ? 'expired' : `renews in ${exp.days} days`}</dd>
-                  </>
-                )}
-              </dl>
-              {(c.last_error || exp?.level === 'soon' || (c.declined_permissions || []).length > 0 || (o.id === 'instagram' && c.account_type?.toLowerCase() === 'personal')) && (
-                <div className="zcn-warn" role="status">
-                  <AlertTriangle size={13} />
-                  <span>
-                    {c.last_error ||
-                      (exp?.level === 'soon'
-                        ? `Access ends in ${exp.days} days. ZieAds renews it automatically; if that fails you will get a reconnect link.`
-                        : (c.declined_permissions || []).length
-                          ? `Switched off: ${c.declined_permissions!.join(', ')}. Reconnect to turn them on.`
-                          : 'Personal accounts do not share comments or insights. Switch to a Business or Creator account in Instagram, then reconnect.')}
-                  </span>
-                </div>
-              )}
-              <div className="zcn-actions-row">
-                <Button size="sm" variant={needsReconnect ? 'primary' : 'secondary'} icon={<RefreshCw size={14} />} onClick={() => connect(o.id)} loading={busy === o.id}>
-                  Reconnect
-                </Button>
-                {o.id === 'facebook' && (c.page_count || 0) > 1 && (
-                  <Button size="sm" variant="secondary" onClick={openPagePicker}>
-                    Switch Page
-                  </Button>
-                )}
-                {o.id === 'facebook' && (
-                  <Button size="sm" variant="ghost" onClick={syncFacebook} loading={busy === 'facebook-sync'}>
-                    Sync now
-                  </Button>
-                )}
-                {confirmDisconnect === o.id ? (
-                  <Button size="sm" variant="danger" onClick={() => disconnect(o.id)} loading={busy === o.id}>
-                    Confirm disconnect
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="ghost" onClick={() => setConfirmDisconnect(o.id)} disabled={demo.isActive}>
-                    Disconnect
-                  </Button>
-                )}
-              </div>
-              {confirmDisconnect === o.id && <p className="zcn-note">Disconnecting deletes the posts, comments and insights ZieAds stored from {o.name}.</p>}
-            </>
-          ) : (
-            <Button variant="soft" full icon={<Link2 />} onClick={() => connect(o.id)} loading={busy === o.id}>
-              Connect {o.name}
-            </Button>
-          )}
-        </div>
-      </Card>
-    );
-  };
-
-  const renderAds = (a: (typeof ADS)[number]) => {
-    const s = ads[a.id] || {};
-    return (
-      <Card key={a.id} className="zcn-card">
-        <div className="zcn-head">
-          <span className="zcn-brand">
-            <SocialIcon platform={a.icon} size={26} />
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div className="zcn-name">{a.name}</div>
-            <div className="zcn-type">Read only</div>
-          </div>
-          <span className="zcn-status">
-            <Pill tone={s.imported_rows ? 'good' : 'neutral'}>{s.imported_rows ? 'Manual import' : 'Not connected'}</Pill>
-          </span>
-        </div>
-        <div className="zcn-foot">
-          <dl className="zcn-facts">
-            <dt>API access</dt>
-            <dd>In review with {a.name.split(' ')[0]}</dd>
-            <dt>Imported</dt>
-            <dd>{s.imported_rows ? `${s.imported_rows} rows, ${s.first_date} to ${s.last_date}` : 'nothing yet'}</dd>
-          </dl>
-          <div className="zcn-actions-row">
-            <Button size="sm" variant="soft" icon={<Upload size={14} />} onClick={() => setImportFor(a.id)}>
-              Manual import (CSV)
-            </Button>
-            <a className="zd-btn is-ghost is-sm" href="/api/v3/ads/template" download>
-              <Download size={14} />
-              <span className="zd-btn-text">Template</span>
-            </a>
-          </div>
-        </div>
-      </Card>
-    );
-  };
+  const unlimited = fleet && (fleet.limit === -1 || fleet.limit >= 99999);
+  const full = fleet && !unlimited && fleet.used >= fleet.limit;
 
   return (
     <V3Layout>
-      <PageHeader number="08" label="Connections" title="Connections" subtitle="Official connections only. Disconnecting deletes that data." />
+      <PageHeader
+        title="Connect TikTok"
+        subtitle="TikTok is the only network here. Add as many TikTok accounts as your plan holds, then run them from one place."
+        actions={
+          <Button variant="secondary" icon={<Users size={15} />} onClick={() => navigate('/accounts')}>
+            All accounts
+          </Button>
+        }
+      />
       <PageBody>
         {banner && (
           <div className={`zcn-banner tone-${banner.tone}`} role="status">
@@ -381,145 +175,153 @@ export default function ConnectionsPage() {
             </button>
           </div>
         )}
-        {fromOnboarding && !banner && (
-          <div className="zcn-banner tone-good" role="status">
-            <CheckCircle size={16} />
-            <span>Your brand is saved. Connect Instagram or Facebook and Zie builds your first briefing in about a minute.</span>
-            <Button size="sm" variant="ghost" onClick={() => navigate('/analyst')}>
-              Skip for now
-            </Button>
-          </div>
-        )}
         {loading ? (
-          <LoadingState text="Loading connections" />
+          <LoadingState text="Loading" />
         ) : (
           <>
-            <section>
-              <div className="zcn-group-head">
-                <h2>Organic social media</h2>
-                <span className="zd-eyebrow">
-                  {liveCount} of {ORGANIC.length} connected · {ORGANIC.filter((o) => o.status === 'soon').length} coming soon
-                </span>
-              </div>
-              <div className="zd-grid-2">{ORGANIC.map(renderOrganic)}</div>
-            </section>
-
-            <section>
-              <div className="zcn-group-head">
-                <h2>Paid ads, read only</h2>
-                <span className="zd-eyebrow">Read only. ZieAds never changes campaigns or budgets.</span>
-              </div>
-              <div className="zd-grid-3">{ADS.map(renderAds)}</div>
-            </section>
-
-            <section>
-              <div className="zcn-group-head">
-                <h2>AI assistants</h2>
-              </div>
-              <Card className="zcn-card zcn-mcp">
+            <div className="zd-grid-2">
+              <Card className="zcn-card is-on">
                 <div className="zcn-head">
                   <span className="zcn-brand">
-                    <KeyRound size={22} />
+                    <SocialIcon platform="tiktok" size={26} />
                   </span>
                   <div style={{ minWidth: 0 }}>
-                    <div className="zcn-name">ZieAds MCP server</div>
-                    <div className="zcn-type">Use your briefing, calendar, inbox and analytics from Claude, ChatGPT or Cursor. Write actions wait for your approval.</div>
+                    <div className="zcn-name">Add a TikTok account</div>
+                    <div className="zcn-type">Profile stats, videos, scheduling and publishing</div>
                   </div>
                   <span className="zcn-status">
-                    <Button size="sm" variant="secondary" onClick={() => navigate('/settings/api')}>
-                      Set up MCP
-                    </Button>
+                    <Pill tone={full ? 'warn' : 'good'}>
+                      {fleet?.used || 0} / {unlimited ? 'unlimited' : fleet?.limit}
+                    </Pill>
                   </span>
                 </div>
+                <ol className="zcn-steps">
+                  <li>Click Add account. TikTok opens and always asks which account to use.</li>
+                  <li>Sign in to the account you want to add and allow every permission.</li>
+                  <li>You come back here. Repeat for the next account.</li>
+                </ol>
+                <p className="zcn-note">
+                  Adding many accounts from one browser? Switch the account inside TikTok's sign in screen, or use a connect link below so each creator signs in on their own phone.
+                </p>
+                <div className="zcn-foot">
+                  <Button full icon={<Plus size={15} />} loading={busy === 'connect'} disabled={!!full} onClick={connect}>
+                    {full ? 'Plan is full' : 'Add account'}
+                  </Button>
+                </div>
               </Card>
-            </section>
+
+              <Card className="zcn-card">
+                <CardTitle icon={<Link2 size={16} />} sub="Creators open it on their phone, sign in to TikTok, and the account joins this workspace. No dnvb login needed.">
+                  Connect link
+                </CardTitle>
+                <div className="zcn-form">
+                  <label>
+                    <span>Label (optional)</span>
+                    <input className="zd-input" value={form.label} placeholder="Creator name or store" onChange={(e) => setForm({ ...form, label: e.target.value })} />
+                  </label>
+                  <label>
+                    <span>Group (optional)</span>
+                    <input className="zd-input" list="zcn-groups" value={form.group} placeholder="Skincare, Batch 3, Affiliate" onChange={(e) => setForm({ ...form, group: e.target.value })} />
+                    <datalist id="zcn-groups">{(fleet?.groups || []).map((g) => <option key={g} value={g} />)}</datalist>
+                  </label>
+                  <div className="zcn-form-row">
+                    <label>
+                      <span>Accounts per link</span>
+                      <input className="zd-input" type="number" min={1} max={500} value={form.max_uses} onChange={(e) => setForm({ ...form, max_uses: Math.max(1, Number(e.target.value) || 1) })} />
+                    </label>
+                    <label>
+                      <span>Valid for (days)</span>
+                      <input className="zd-input" type="number" min={1} max={30} value={form.expires_days} onChange={(e) => setForm({ ...form, expires_days: Math.min(30, Math.max(1, Number(e.target.value) || 7)) })} />
+                    </label>
+                  </div>
+                </div>
+                <div className="zcn-foot">
+                  <Button full variant="soft" icon={<Link2 size={15} />} loading={busy === 'invite'} onClick={createInvite}>
+                    Make link and copy
+                  </Button>
+                </div>
+              </Card>
+            </div>
+
+            {invites.length > 0 && (
+              <section>
+                <div className="zcn-group-head">
+                  <h2>Connect links</h2>
+                  <span className="zd-eyebrow">{invites.filter((i) => i.active).length} active</span>
+                </div>
+                <Card padding={0}>
+                  <ul className="zcn-invites">
+                    {invites.map((i) => (
+                      <li key={i.id}>
+                        <div className="zcn-invite-main">
+                          <strong>{i.label || 'Connect link'}</strong>
+                          <small>
+                            {i.account_group ? `${i.account_group} · ` : ''}
+                            {i.used_count}/{i.max_uses} used · until {new Date(i.expires_at).toLocaleDateString()}
+                          </small>
+                        </div>
+                        <Pill tone={i.active ? 'good' : 'neutral'}>{i.active ? 'Active' : 'Done'}</Pill>
+                        <Button size="sm" variant="ghost" icon={copied === i.id ? <CheckCircle size={14} /> : <Copy size={14} />} onClick={() => copy(i.url, i.id)}>
+                          {copied === i.id ? 'Copied' : 'Copy'}
+                        </Button>
+                        <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} aria-label="Revoke link" loading={busy === i.id} onClick={() => revoke(i.id)} />
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </section>
+            )}
 
             <section>
               <div className="zcn-group-head">
-                <h2>Coming soon</h2>
+                <h2>TikTok Ads, read only</h2>
+                <span className="zd-eyebrow">dnvb never changes campaigns or budgets.</span>
               </div>
-              <div className="zcn-soon">
-                {COMING_SOON.map((n) => (
-                  <span key={n} className="zcn-soon-item">
-                    {n}
+              <Card className="zcn-card">
+                <div className="zcn-head">
+                  <span className="zcn-brand">
+                    <SocialIcon platform="tiktok" size={26} />
                   </span>
-                ))}
-              </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="zcn-name">TikTok Ads</div>
+                    <div className="zcn-type">Spend, results and ROAS for the Ads Analyst</div>
+                  </div>
+                  <span className="zcn-status">
+                    <Pill tone={ads.imported_rows ? 'good' : 'neutral'}>{ads.imported_rows ? 'Manual import' : 'Not connected'}</Pill>
+                  </span>
+                </div>
+                <div className="zcn-foot">
+                  <dl className="zcn-facts">
+                    <dt>Imported</dt>
+                    <dd>{ads.imported_rows ? `${ads.imported_rows} rows, ${ads.first_date} to ${ads.last_date}` : 'nothing yet'}</dd>
+                  </dl>
+                  <div className="zcn-actions-row">
+                    <Button size="sm" variant="soft" icon={<Upload size={14} />} onClick={() => setImportOpen(true)}>
+                      Manual import (CSV)
+                    </Button>
+                    <a className="zd-btn is-ghost is-sm" href="/api/v3/ads/template" download>
+                      <Download size={14} />
+                      <span className="zd-btn-text">Template</span>
+                    </a>
+                  </div>
+                </div>
+              </Card>
             </section>
           </>
         )}
       </PageBody>
-
-      {tgOpen && (
-        <TelegramConnectModal
-          onClose={() => setTgOpen(false)}
-          onManual={() => {
-            setTgOpen(false);
-            setManualFor(PLATFORMS.find((p) => p.id === 'telegram') || null);
-          }}
-          onDone={(title) => {
-            setTgOpen(false);
-            setBanner({ tone: 'good', text: `Telegram is connected${title ? ` to ${title}` : ''}. It is ready in the Composer.`, action: { label: 'Create a post', to: '/composer' } });
+      {importOpen && (
+        <AdsImportModal
+          platform="tiktok_ads"
+          name="TikTok Ads"
+          onClose={() => setImportOpen(false)}
+          onDone={(n) => {
+            setImportOpen(false);
+            setBanner({ tone: 'good', text: `Imported ${n} rows. The Ads Analyst and Analytics now read them.` });
             load();
           }}
         />
       )}
-
-      {(formFor || manualFor) && (
-        <ConnectFormModal
-          platform={(formFor || manualFor)!}
-          manual={!!manualFor}
-          onManual={() => {
-            setManualFor(formFor);
-            setFormFor(null);
-          }}
-          onClose={() => {
-            setFormFor(null);
-            setManualFor(null);
-          }}
-          onDone={(text) => {
-            setFormFor(null);
-            setManualFor(null);
-            setBanner({ tone: 'good', text, action: { label: 'Create a post', to: '/composer' } });
-            load();
-          }}
-        />
-      )}
-
-      {pagePicker && (
-        <div className="zcn-overlay" role="dialog" aria-modal="true" aria-label="Choose a Facebook Page">
-          <Card className="zcn-modal" padding={26}>
-            <div className="zcn-modal-head">
-              <span className="zd-icon-dot">
-                <SocialIcon platform="facebook" size={18} />
-              </span>
-              <div>
-                <h3>Which Page should Zie manage?</h3>
-                <p>One brand uses one Page. You can switch later.</p>
-              </div>
-            </div>
-            <div className="zcn-pages">
-              {pagePicker.pages.map((p) => (
-                <button key={p.id} type="button" className={`zcn-page ${p.id === pagePicker.selected ? 'is-selected' : ''}`} onClick={() => choosePage(p.id)} disabled={busy === 'facebook'}>
-                  {p.picture ? <img src={p.picture} alt="" /> : <span className="zcn-page-dot" />}
-                  <span>
-                    <strong>{p.name}</strong>
-                    <small>{p.category || 'Facebook Page'}</small>
-                  </span>
-                  {p.id === pagePicker.selected && <CheckCircle size={16} />}
-                </button>
-              ))}
-            </div>
-            <div className="zcn-actions">
-              <Button variant="ghost" onClick={() => setPagePicker(null)}>
-                Close
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {importFor && <AdsImportModal platform={importFor} name={ADS.find((a) => a.id === importFor)!.name} onClose={() => setImportFor(null)} onDone={(n) => { setImportFor(null); setBanner({ tone: 'good', text: `Imported ${n} rows. The Ads Analyst and Analytics now read them.` }); load(); }} />}
     </V3Layout>
   );
 }
@@ -640,208 +442,3 @@ function AdsImportModal({ platform, name, onClose, onDone }: { platform: AdsId; 
 }
 
 /** Connect window for networks that need one value first (Bluesky handle, Mastodon server), or the manual fallback */
-function ConnectFormModal({ platform, manual, onManual, onClose, onDone }: { platform: Platform; manual: boolean; onManual: () => void; onClose: () => void; onDone: (text: string) => void }) {
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState('');
-  const fields = manual ? platform.manualFields || [] : platform.fields || [];
-  const signIn = !manual && platform.connect === 'oauth_form';
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setErr('');
-    try {
-      if (signIn) {
-        const j = await api<{ url: string }>(`/api/auth/${platform.id}/connect`, { body: values });
-        window.location.href = j.url;
-        return;
-      }
-      const j = await api(`/api/auth/${platform.id}/credentials`, { body: values });
-      onDone(`${platform.name} is connected${j.display_name ? ` as ${j.display_name}` : ''}. It is ready in the Composer.`);
-    } catch (e: any) {
-      setErr(e.message);
-      setBusy(false);
-    }
-  };
-  return (
-    <div className="zcn-overlay" role="dialog" aria-modal="true" aria-label={`Connect ${platform.name}`}>
-      <Card className="zcn-modal" padding={26}>
-        <form onSubmit={submit}>
-          <div className="zcn-modal-head">
-            <span className="zd-icon-dot">
-              <SocialIcon platform={platform.id} size={18} />
-            </span>
-            <div>
-              <h3>Connect {platform.name}</h3>
-              {(manual ? platform.manualHowTo : platform.howTo) && <p>{manual ? platform.manualHowTo : platform.howTo}</p>}
-            </div>
-          </div>
-          <div className="zcn-form">
-            {fields.map((f, i) => (
-              <label key={f.key} className="zcn-field">
-                <span>
-                  {f.label}
-                  {f.optional && <em> optional</em>}
-                </span>
-                <input
-                  className="zd-input"
-                  type={f.type === 'password' ? 'password' : f.type === 'url' ? 'url' : 'text'}
-                  autoComplete="off"
-                  autoFocus={i === 0}
-                  placeholder={f.placeholder}
-                  required={!f.optional}
-                  value={values[f.key] || ''}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                />
-                {f.help && <small>{f.help}</small>}
-              </label>
-            ))}
-            {!manual && platform.suggestions && (
-              <div className="zcn-chips" aria-label="Popular servers">
-                {platform.suggestions.map((sv) => (
-                  <button key={sv} type="button" className={`zcn-chip ${values[fields[0]?.key] === sv ? 'is-on' : ''}`} onClick={() => setValues((v) => ({ ...v, [fields[0].key]: sv }))}>
-                    {sv}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {err && (
-            <p className="zcn-form-err" role="alert">
-              {err}
-            </p>
-          )}
-          <div className="zcn-actions">
-            {!manual && platform.manualFields && (
-              <button type="button" className="zcn-alt" onClick={onManual}>
-                {platform.manualLabel || 'Connect manually'}
-              </button>
-            )}
-            <Button variant="ghost" type="button" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={busy}>
-              {signIn ? `Continue to ${platform.name}` : `Connect ${platform.name}`}
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
-  );
-}
-
-/** One click Telegram: open the ZieAds bot, press Start, add it to a chat. The window watches and closes itself. */
-function TelegramConnectModal({ onClose, onManual, onDone }: { onClose: () => void; onManual: () => void; onDone: (title?: string) => void }) {
-  const [link, setLink] = useState<{ code: string; url: string; bot_username: string } | null>(null);
-  const [status, setStatus] = useState<{ status: string; chat_title?: string; error?: string }>({ status: 'loading' });
-  const [err, setErr] = useState('');
-
-  useEffect(() => {
-    api('/api/auth/telegram/start', { body: {} })
-      .then((j) => {
-        setLink(j);
-        setStatus({ status: 'waiting' });
-      })
-      .catch((e) => setErr(e.message));
-  }, []);
-
-  // Checks every 2 seconds whether Start was pressed and the bot was added
-  useEffect(() => {
-    if (!link) return;
-    let stop = false;
-    const tick = async () => {
-      if (stop) return;
-      try {
-        const s = await api(`/api/auth/telegram/status?code=${encodeURIComponent(link.code)}`);
-        setStatus(s);
-        if (s.status === 'connected') return onDone(s.chat_title);
-        if (s.status === 'expired' || s.status === 'missing') return;
-      } catch {
-        /* keep trying */
-      }
-      setTimeout(tick, 2000);
-    };
-    const t = setTimeout(tick, 2000);
-    return () => {
-      stop = true;
-      clearTimeout(t);
-    };
-  }, [link]);
-
-  const started = status.status === 'started' || status.status === 'connected';
-  const statusText =
-    status.status === 'loading'
-      ? 'Preparing your link...'
-      : status.status === 'waiting'
-        ? 'Waiting for you to press Start...'
-        : status.status === 'started'
-          ? status.error || 'Linked. Waiting for you to add the bot to a channel or group...'
-          : status.status === 'expired'
-            ? 'This link expired. Close and press Connect Telegram again.'
-            : status.status === 'connected'
-              ? 'Connected'
-              : 'Something went wrong. Close and try again.';
-
-  return (
-    <div className="zcn-overlay" role="dialog" aria-modal="true" aria-label="Connect Telegram">
-      <Card className="zcn-modal" padding={26}>
-        <div className="zcn-modal-head">
-          <span className="zd-icon-dot">
-            <SocialIcon platform="telegram" size={18} />
-          </span>
-          <div>
-            <h3>Connect Telegram</h3>
-            <p>Channels and groups, through the ZieAds bot</p>
-          </div>
-        </div>
-        {err ? (
-          <p className="zcn-form-err" role="alert">
-            {err}
-          </p>
-        ) : (
-          <ol className="zcn-tg-steps">
-            <li className={started ? 'is-done' : ''}>
-              <span className="zcn-tg-n">{started ? <CheckCircle size={14} /> : 1}</span>
-              <div>
-                <strong>Open the ZieAds bot in Telegram</strong>
-                <Button size="sm" icon={<ExternalLink size={14} />} disabled={!link} onClick={() => link && window.open(link.url, '_blank', 'noopener')}>
-                  {link ? `Open @${link.bot_username}` : 'Preparing...'}
-                </Button>
-                <small>
-                  Make sure {link ? `@${link.bot_username}` : 'the ZieAds bot'} is the one that opened, then press <b>Start</b>. Bots with similar names are not ZieAds.
-                </small>
-              </div>
-            </li>
-            <li>
-              <span className="zcn-tg-n">2</span>
-              <div>
-                <strong>Add the bot to a channel or group</strong>
-                <small>
-                  In the bot's chat, choose <b>Add to channel</b> or <b>Add to group</b>, then pick the chat. In a channel, allow the bot to post messages. You must be an admin there.
-                </small>
-                <small>
-                  Bot already in the chat? In a group, send <b>/connect</b> there. In a channel, remove the bot and add it again.
-                </small>
-              </div>
-            </li>
-          </ol>
-        )}
-        <div className="zcn-tg-status" role="status" aria-live="polite">
-          <small>Connected with this code</small>
-          <span>
-            {status.status !== 'connected' && status.status !== 'expired' && !err && <span className="zcn-spin" aria-hidden="true" />}
-            {statusText}
-          </span>
-        </div>
-        <div className="zcn-actions">
-          <button type="button" className="zcn-alt" onClick={onManual}>
-            Use your own bot instead
-          </button>
-          <Button variant="secondary" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
-}

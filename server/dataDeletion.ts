@@ -175,7 +175,13 @@ export async function handlePlatformDeletion(platform: "meta" | "threads" | "tik
   }
 
   const userIds = [...new Set(matches.map((m: any) => m.user_id))];
-  for (const uid of userIds) await deletePlatformData(uid as string, platform);
+  if (platform === "tiktok") {
+    // DNVB: a workspace holds many TikTok accounts, remove only the one that asked
+    const { disconnectTikTokAccount } = await import("./tiktok/accounts.js");
+    for (const uid of userIds) await disconnectTikTokAccount(uid as string, String(platformUserId));
+  } else {
+    for (const uid of userIds) await deletePlatformData(uid as string, platform);
+  }
 
   await supabaseAdmin.from("data_deletion_requests").insert({
     confirmation_code: confirmationCode,

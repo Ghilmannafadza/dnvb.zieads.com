@@ -39,11 +39,8 @@ type Kind = 'all' | 'ad' | 'organic';
 type Sort = 'newest' | 'running' | 'engagement';
 
 const SOURCES: { id: string; label: string; icon: string; kind: 'ad' | 'organic' }[] = [
-  { id: 'meta_ads', label: 'Meta ads', icon: 'meta', kind: 'ad' },
+  // DNVB: TikTok only
   { id: 'tiktok_ads', label: 'TikTok ads', icon: 'tiktok', kind: 'ad' },
-  { id: 'linkedin_ads', label: 'LinkedIn ads', icon: 'linkedin', kind: 'ad' },
-  { id: 'instagram', label: 'Instagram', icon: 'instagram', kind: 'organic' },
-  { id: 'facebook', label: 'Facebook', icon: 'facebook', kind: 'organic' },
 ];
 // TikTok and LinkedIn organic posts of other brands have no official source, so Hunt does not claim them.
 // The TikTok profile still shows through TikTok's own embed.
@@ -596,7 +593,7 @@ export default function HuntPage() {
   const fc = feed?.competitor || comp;
   const status: Record<string, any> = fc?.content_sync_status || {};
   const atLimit = !!compLimit && compLimit.limit !== -1 && competitors.length >= compLimit.limit;
-  const items: any[] = (feed?.items || []).filter((i: any) => !HIDDEN_SOURCES.has(i.source));
+  const items: any[] = (feed?.items || []).filter((i: any) => !HIDDEN_SOURCES.has(i.source) && SOURCES.some((x) => x.id === i.source)); // DNVB: TikTok sources only
 
   const visible = useMemo(() => {
     let list = items.filter((i) => (kind === 'all' || i.kind === kind) && (!source || i.source === source));

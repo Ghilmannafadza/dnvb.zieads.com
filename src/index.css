@@ -9,12 +9,12 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #F26522;
-  --primary-light: #e05a1a;
+  --primary: #E8478C;
+  --primary-light: #D63A7C;
   --primary-bg: #FFF5EE;
-  --primary-border: #FDDCC8;
-  --gradient: linear-gradient(135deg, #F26522 0%, #E8571B 100%);
-  --gradient-btn: linear-gradient(135deg, #F26522 0%, #E8571B 100%);
+  --primary-border: #F9CFE2;
+  --gradient: linear-gradient(135deg, #E8478C 0%, #E8571B 100%);
+  --gradient-btn: linear-gradient(135deg, #E8478C 0%, #E8571B 100%);
   
   --bg: #FFFFFF;
   --bg-soft: #FAFAFA;
@@ -1054,7 +1054,7 @@ a:hover { color: var(--primary); }
 
 /* ═══════════════════════════════════════════════════════
    ZieAds Landing Page - Axion Studio Pattern
-   System font · Orange #F26522 accent · Shader hero
+   System font · Orange #E8478C accent · Shader hero
    ═══════════════════════════════════════════════════════ */
 
 .landing-page {
@@ -1078,12 +1078,12 @@ a:hover { color: var(--primary); }
   --lp-border-subtle: #e5e5e5;
   --lp-border-default: #d4d4d4;
   --lp-border-strong: #b0b0b0;
-  --lp-focus-ring: rgba(242, 101, 34, 0.15);
+  --lp-focus-ring: rgba(232, 71, 140, 0.15);
 
-  --lp-accent: #F26522;
-  --lp-accent-hover: #e05a1a;
+  --lp-accent: #E8478C;
+  --lp-accent-hover: #D63A7C;
   --lp-pill-bg: #f0f0f0;
-  --lp-star-color: #F26522;
+  --lp-star-color: #E8478C;
 
   --lp-shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
   --lp-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
@@ -1292,7 +1292,7 @@ a:hover { color: var(--primary); }
 }
 .landing-page .mobile-nav-cta {
   width: 100%;
-  background: #F26522;
+  background: #E8478C;
   border: none;
   color: #ffffff;
   padding: 14px 20px;
@@ -1305,7 +1305,7 @@ a:hover { color: var(--primary); }
   margin-bottom: 10px;
 }
 .landing-page .mobile-nav-cta:hover {
-  background: #e05a1a;
+  background: #D63A7C;
 }
 .landing-page .mobile-nav-btn-outline {
   width: 100%;
@@ -1512,7 +1512,7 @@ a:hover { color: var(--primary); }
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #F26522;
+  background: #E8478C;
   border: none;
   color: #ffffff;
   display: flex;
@@ -1523,7 +1523,7 @@ a:hover { color: var(--primary); }
   transition: background 0.15s;
 }
 .landing-page .hero-search-submit:hover {
-  background: #e05a1a;
+  background: #D63A7C;
 }
 
 .landing-page .hero-search-bottombar {
@@ -1683,7 +1683,7 @@ a:hover { color: var(--primary); }
   justify-content: center;
   border-radius: 12px;
   background: #FFF0E8;
-  color: #F26522;
+  color: #E8478C;
   margin-bottom: 20px;
 }
 
@@ -1731,13 +1731,13 @@ a:hover { color: var(--primary); }
   border-radius: 6px;
 }
 .landing-page .axion-platform-active {
-  background: #F26522 !important;
+  background: #E8478C !important;
   color: #ffffff !important;
 }
 
 /* ── Axion Orange Button ── */
 .landing-page .axion-btn-orange {
-  background: #F26522;
+  background: #E8478C;
   border: none;
   border-radius: 8px;
   color: white;
@@ -1747,7 +1747,7 @@ a:hover { color: var(--primary); }
   font-family: var(--font-system) !important;
 }
 .landing-page .axion-btn-orange:hover {
-  background: #e05a1a;
+  background: #D63A7C;
 }
 
 /* ── Axion Tool Pill ── */
@@ -1762,8 +1762,8 @@ a:hover { color: var(--primary); }
   transition: all 0.2s;
 }
 .landing-page .axion-tool-pill:hover {
-  border-color: #F26522;
-  color: #F26522;
+  border-color: #E8478C;
+  color: #E8478C;
 }
 
 /* ── Axion Disclaimer Card ── */
@@ -1907,8 +1907,8 @@ a:hover { color: var(--primary); }
   color: var(--lp-text-primary);
 }
 .landing-page .report-tab.active {
-  color: #F26522;
-  border-bottom-color: #F26522;
+  color: #E8478C;
+  border-bottom-color: #E8478C;
   font-weight: 600;
 }
 .landing-page .report-tab-content {
@@ -1951,7 +1951,7 @@ a:hover { color: var(--primary); }
   background: var(--lp-bg-canvas);
 }
 .landing-page .comparison-table .comp-highlight {
-  background: rgba(242, 101, 34, 0.04);
+  background: rgba(232, 71, 140, 0.04);
   font-weight: 600;
   color: var(--lp-text-primary);
 }
@@ -2002,7 +2002,7 @@ a:hover { color: var(--primary); }
 .landing-page .lp-star {
   width: 14px;
   height: 14px;
-  color: #F26522;
+  color: #E8478C;
 }
 .landing-page .testimonial-quote {
   font-size: 15px !important;
@@ -2069,7 +2069,7 @@ a:hover { color: var(--primary); }
   justify-content: center;
   border-radius: 12px;
   background: #FFF0E8;
-  color: #F26522;
+  color: #E8478C;
   margin-bottom: 16px;
 }
 .landing-page .persona-suggestion {
@@ -2138,15 +2138,15 @@ a:hover { color: var(--primary); }
   box-shadow: var(--lp-shadow-card-hover);
 }
 .landing-page .pricing-highlight {
-  border-color: #F26522 !important;
-  box-shadow: 0 8px 30px rgba(242, 101, 34, 0.12);
+  border-color: #E8478C !important;
+  box-shadow: 0 8px 30px rgba(232, 71, 140, 0.12);
 }
 .landing-page .popular-badge {
   position: absolute;
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #F26522;
+  background: #E8478C;
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
@@ -2492,7 +2492,7 @@ a:hover { color: var(--primary); }
    GENERAL BUTTON - gradient primary (for sections)
    ═══════════════════════════════════════════════════════ */
 .landing-page .btn-lp-primary-gradient {
-  background: #F26522 !important;
+  background: #E8478C !important;
   border: none !important;
   border-radius: var(--lp-radius-pill) !important;
   color: #ffffff !important;
@@ -2509,7 +2509,7 @@ a:hover { color: var(--primary); }
   font-family: var(--font-system) !important;
 }
 .landing-page .btn-lp-primary-gradient:hover:not(:disabled) {
-  background: #e05a1a !important;
+  background: #D63A7C !important;
   transform: none !important;
 }
 
@@ -2539,7 +2539,7 @@ a:hover { color: var(--primary); }
   color: var(--lp-text-primary) !important;
 }
 .landing-page .hero-cta {
-  background: #F26522 !important;
+  background: #E8478C !important;
   border: none !important;
   border-radius: var(--lp-radius-button) !important;
   color: #ffffff !important;
@@ -2555,7 +2555,7 @@ a:hover { color: var(--primary); }
   min-height: auto !important;
 }
 .landing-page .hero-cta:hover:not(:disabled) {
-  background: #e05a1a !important;
+  background: #D63A7C !important;
   transform: none !important;
 }
 .landing-page .hero-cta .btn-arrow-circle {

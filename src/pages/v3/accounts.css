@@ -1,0 +1,91 @@
+/* DNVB: TikTok Accounts (fleet view). Follows dash.css tokens; selected rows use a white lift, not a side stripe. */
+.zac-banner { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--zd-line); border-radius: 12px; background: #fff; font-size: 13.5px; line-height: 1.5; }
+.zac-banner span { flex: 1; }
+.zac-banner.tone-good svg { color: var(--zd-good); }
+.zac-banner.tone-bad svg { color: var(--zd-bad); }
+
+.zac-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { .zac-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .zac-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.zac-trends { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .zac-trends { grid-template-columns: 1fr; } }
+.zac-trend { display: grid; gap: 8px; }
+.zac-trend-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.zac-trend-head strong { font-size: 18px; color: var(--zd-ink); font-weight: 650; }
+.zac-spark { width: 100%; height: 56px; display: block; }
+.zac-spark path { stroke: var(--zd-accent); }
+.zac-spark rect { fill: var(--zd-ink); opacity: 0.18; }
+
+.zac-table-card { overflow: hidden; }
+.zac-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--zd-line); }
+.zac-search { flex: 1 1 240px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--zd-line); border-radius: 8px; padding: 0 10px; height: 36px; color: var(--zd-ink-3); background: #fff; }
+.zac-search input { border: 0; outline: 0; flex: 1; font-size: 13.5px; color: var(--zd-ink); background: transparent; min-width: 0; }
+.zac-select { width: auto; height: 36px; padding: 0 30px 0 10px; border-radius: 8px; font-size: 13px; }
+.zac-count { font-size: 12.5px; color: var(--zd-ink-3); margin-left: auto; }
+
+.zac-bulk { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--zd-line); background: var(--zd-soft, #f6f5f3); font-size: 13px; }
+.zac-bulk-sp { flex: 1; }
+.zac-group-edit { display: inline-flex; align-items: center; gap: 6px; }
+.zac-group-edit .zd-input { height: 32px; padding: 0 10px; border-radius: 8px; width: 170px; font-size: 13px; }
+
+.zac-table-wrap { overflow-x: auto; }
+.zac-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 980px; }
+.zac-table th { text-align: left; font-weight: 600; font-size: 12px; color: var(--zd-ink-3); padding: 10px 12px; border-bottom: 1px solid var(--zd-line); white-space: nowrap; background: #fff; position: sticky; top: 0; }
+.zac-table td { padding: 10px 12px; border-bottom: 1px solid var(--zd-line); color: var(--zd-ink); vertical-align: middle; white-space: nowrap; }
+.zac-table tr:last-child td { border-bottom: 0; }
+.zac-table tbody tr { transition: background 0.15s var(--zd-ease, ease); }
+.zac-table tbody tr:hover { background: #fafafa; }
+.zac-table tbody tr.is-selected { background: #fff; box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.025); }
+.zac-table tbody tr.is-selected .zac-acct strong { font-weight: 700; }
+.zac-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.zac-cb { width: 36px; }
+.zac-cb input { width: 16px; height: 16px; accent-color: var(--zd-accent); }
+.zac-acct { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
+.zac-acct-text { display: grid; gap: 1px; min-width: 0; }
+.zac-acct-text strong { font-weight: 600; font-size: 13.5px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.zac-acct-text small { font-size: 12px; color: var(--zd-ink-3); }
+.zac-av { position: relative; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--zd-soft, #f2f2f2); flex-shrink: 0; font-weight: 650; font-size: 13px; color: var(--zd-ink-2); }
+.zac-av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.zac-av i { position: absolute; right: -3px; bottom: -3px; background: #fff; border-radius: 50%; padding: 2px; display: flex; box-shadow: 0 0 0 1px var(--zd-line); }
+.zac-group { display: inline-block; font-size: 12px; padding: 2px 8px; border: 1px solid var(--zd-line); border-radius: 999px; color: var(--zd-ink-2); }
+.zac-muted { color: var(--zd-ink-4); }
+.zac-up { color: var(--zd-ink); }
+.zac-up::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--zd-good); margin-right: 6px; vertical-align: middle; }
+.zac-down { color: var(--zd-ink); }
+.zac-down::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--zd-bad); margin-right: 6px; vertical-align: middle; }
+.zac-warn-text { color: var(--zd-ink-3); }
+.zac-sub { font-size: 11.5px; color: var(--zd-ink-3); margin-top: 3px; }
+.zac-actions { text-align: right; }
+.zac-actions .zd-btn + .zd-btn { margin-left: 4px; }
+.zac-none { text-align: center; color: var(--zd-ink-3); padding: 32px 12px !important; }
+.zac-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px; border-top: 1px solid var(--zd-line); font-size: 13px; color: var(--zd-ink-3); }
+
+.zac-overlay { position: fixed; inset: 0; background: rgba(17, 17, 17, 0.32); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 80; }
+.zac-overlay.is-drawer { justify-content: flex-end; padding: 0; }
+.zac-modal { max-width: 440px; width: 100%; display: grid; gap: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.14); }
+.zac-modal h3 { margin: 0; font-size: 18px; font-weight: 650; }
+.zac-modal p { margin: 0; font-size: 13.5px; color: var(--zd-ink-3); line-height: 1.5; }
+.zac-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Drawer slides in from the right when an account is opened (answers the click) */
+.zac-drawer { width: min(460px, 100vw); height: 100dvh; background: #fff; overflow-y: auto; padding: 22px; display: grid; align-content: start; gap: 16px; box-shadow: -20px 0 60px rgba(0, 0, 0, 0.12); animation: zac-in 0.22s var(--zd-ease, ease); }
+@keyframes zac-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .zac-drawer { animation: none; } }
+.zac-drawer-head { display: flex; align-items: center; gap: 12px; }
+.zac-drawer-head h3 { margin: 0; font-size: 18px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zac-ext { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--zd-ink-3); text-decoration: none; }
+.zac-drawer-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.zac-drawer-stats div { border: 1px solid var(--zd-line); border-radius: 10px; padding: 10px; display: grid; gap: 2px; }
+.zac-drawer-stats span { font-size: 11.5px; color: var(--zd-ink-3); }
+.zac-drawer-stats strong { font-size: 16px; font-weight: 650; }
+.zac-form { display: grid; gap: 10px; }
+.zac-form label { display: grid; gap: 5px; font-size: 12.5px; color: var(--zd-ink-3); }
+.zac-form .zd-input { border-radius: 8px; }
+.zac-err { margin: 0; font-size: 13px; color: var(--zd-bad); }
+.zac-drawer-sec { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.zac-videos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.zac-video { position: relative; aspect-ratio: 9 / 16; border-radius: 8px; overflow: hidden; background: #f2f2f2; display: block; }
+.zac-video img { width: 100%; height: 100%; object-fit: cover; }
+.zac-video small { position: absolute; left: 6px; bottom: 5px; color: #fff; font-size: 11px; font-weight: 600; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.zac-drawer-foot { display: flex; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid var(--zd-line); }

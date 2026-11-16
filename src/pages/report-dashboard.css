@@ -32,7 +32,7 @@
   justify-content: center;
 }
 .zrd-ring::before { content: ''; position: absolute; inset: 14px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px var(--zd-line); }
-.zrd-ring { box-shadow: 0 12px 40px rgba(242, 101, 34, 0.14); }
+.zrd-ring { box-shadow: 0 12px 40px rgba(232, 71, 140, 0.14); }
 .zrd-ring-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
 .zrd-ring-value { font-size: 52px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: var(--zd-ink); }
 .zrd-ring-value .zd-num { font-family: var(--zd-font); }
@@ -76,7 +76,7 @@
 .zrd-check:hover { border-color: var(--zd-accent); transform: scale(1.06); }
 .zrd-check:checked { background: var(--zd-accent); border-color: var(--zd-accent); }
 .zrd-check:checked::after { transform: translateY(-1px) rotate(45deg) scale(1); }
-.zrd-check:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(242, 101, 34, 0.18); }
+.zrd-check:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(232, 71, 140, 0.18); }
 
 /* ── Tabs (scrollable chip row) ── */
 .zrd-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; -ms-overflow-style: none; }

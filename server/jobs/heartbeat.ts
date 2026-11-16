@@ -6,7 +6,7 @@
   external scheduler (see docs/scheduler.md).
 */
 import { runDuePosts } from "../publish/publisher.js";
-import { syncAllFacebook } from "../facebook/sync.js";
+import { refreshExpiringTikTokTokens, syncDueTikTokAccounts } from "../tiktok/accounts.js";
 import { runGuardian } from "../guardian/guardian.js";
 import { runDueBriefings } from "../briefing/briefing.js";
 
@@ -15,7 +15,9 @@ export type Step = { name: string; run: () => Promise<unknown> };
 const steps: Step[] = [
   // Budgets add up to about 50 seconds, inside the 60 second function limit
   { name: "publish", run: () => runDuePosts(15000) },
-  { name: "facebook_sync", run: () => syncAllFacebook(10000) },
+  // DNVB: TikTok tokens live 24 hours, refresh first, then sync the accounts that waited longest
+  { name: "tiktok_tokens", run: () => refreshExpiringTikTokTokens() },
+  { name: "tiktok_sync", run: () => syncDueTikTokAccounts({ maxAccounts: 60, budgetMs: 20000 }) },
   { name: "guardian", run: () => runGuardian(10000) },
   { name: "briefings", run: () => runDueBriefings(10000) },
 ];

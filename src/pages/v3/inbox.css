@@ -225,8 +225,8 @@
   animation: zdFadeUp 0.6s var(--zd-ease) both;
 }
 .zin-composer:focus-within {
-  border-color: rgba(242, 101, 34, 0.55);
-  box-shadow: 0 0 0 4px rgba(242, 101, 34, 0.1), 0 16px 44px rgba(242, 101, 34, 0.1);
+  border-color: rgba(232, 71, 140, 0.55);
+  box-shadow: 0 0 0 4px rgba(232, 71, 140, 0.1), 0 16px 44px rgba(232, 71, 140, 0.1);
 }
 .zin-composer.is-loading::before {
   content: '';
@@ -234,7 +234,7 @@
   inset: -1.5px;
   border-radius: 23px;
   padding: 1.5px;
-  background: conic-gradient(from var(--zin-angle, 0deg), transparent 0deg, #f26522 90deg, #ffc4a3 140deg, transparent 220deg);
+  background: conic-gradient(from var(--zin-angle, 0deg), transparent 0deg, #E8478C 90deg, #ffc4a3 140deg, transparent 220deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -274,7 +274,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(242, 101, 34, 0.28);
+  box-shadow: 0 6px 16px rgba(232, 71, 140, 0.28);
   transition: background 0.25s, transform 0.4s var(--zd-ease), box-shadow 0.3s !important;
 }
 .zin-send svg { transition: transform 0.45s var(--zd-ease); }
@@ -302,7 +302,7 @@
 }
 
 /* Suggested replies drafted by the AI Agent */
-.zin-ai-draft { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: #fff1e8; color: #c2410c; font-size: 11px; font-weight: 600; }
+.zin-ai-draft { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 999px; background: #FDEEF5; color: #B8306E; font-size: 11px; font-weight: 600; }
 .zin-ai-draft.is-inline { margin-left: 8px; vertical-align: 1px; }
 
 /* Spec 7.6: thread actions and errors */

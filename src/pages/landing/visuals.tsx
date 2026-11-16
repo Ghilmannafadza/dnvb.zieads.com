@@ -484,8 +484,8 @@ export function ChartVisual() {
           <svg className="zv-line-chart" viewBox="0 0 400 180" preserveAspectRatio="none" aria-hidden="true">
             <defs>
               <linearGradient id="zvArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#F26522" stopOpacity="0.28" />
-                <stop offset="1" stopColor="#F26522" stopOpacity="0" />
+                <stop offset="0" stopColor="#E8478C" stopOpacity="0.28" />
+                <stop offset="1" stopColor="#E8478C" stopOpacity="0" />
               </linearGradient>
             </defs>
             {[40, 80, 120, 160].map((y) => (

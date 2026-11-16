@@ -156,7 +156,7 @@ export default function ReviewCaption() {
         pointerEvents: 'none',
       }}
     >
-      <span style={{ flex: 'none', marginTop: 2, padding: '2px 8px', borderRadius: 6, background: '#F26522', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em' }}>{caption.step}</span>
+      <span style={{ flex: 'none', marginTop: 2, padding: '2px 8px', borderRadius: 6, background: '#E8478C', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em' }}>{caption.step}</span>
       <span key={caption.text} style={{ animation: 'zrcIn 0.25s ease-out' }}>
         {caption.text}
       </span>

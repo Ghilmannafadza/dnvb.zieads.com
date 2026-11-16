@@ -19,6 +19,7 @@ import { getDecryptedToken } from "../utils/tokenHelper.js";
 import { publishPost, replyToComment } from "../utils/instagramApi.js";
 import { syncAll, syncComments, syncRecentPosts } from "../utils/sync-instagram.js";
 import { syncTikTokInsightsForUser } from "../utils/sync-tiktok.js";
+import { syncDueTikTokAccounts, disconnectTikTokAccount } from "../tiktok/accounts.js";
 // @ts-ignore
 import { put, del } from "@vercel/blob";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
@@ -155,47 +156,20 @@ apiV3Router.post("/connections", requireAuth, async (req: any, res) => {
 });
 
 apiV3Router.delete("/connections/:id", requireAuth, async (req: any, res) => {
+  // DNVB: removes exactly one TikTok account and its data, the rest of the fleet stays
   try {
     const { data: connAccount } = await supabaseAdmin
       .from("connected_accounts")
-      .select("platform")
+      .select("platform, platform_account_id")
       .eq("id", req.params.id)
       .eq("user_id", req.userId)
       .maybeSingle();
-
-    if (connAccount) {
-      const platform = connAccount.platform;
-      console.log(`[V3 Connections] Wiping all data for platform ${platform} for user ${req.userId}...`);
-      
-      // Delete from social_connections
-      await supabaseAdmin
-        .from("social_connections")
-        .delete()
-        .eq("platform", platform)
-        .eq("user_id", req.userId);
-
-      // Delete from social_posts (cascade deletes snapshots where post_id is linked)
-      await supabaseAdmin
-        .from("social_posts")
-        .delete()
-        .eq("platform", platform)
-        .eq("user_id", req.userId);
-
-      // Delete inbox comments
-      await supabaseAdmin
-        .from("comments_inbox")
-        .delete()
-        .eq("platform", platform)
-        .eq("user_id", req.userId);
+    if (!connAccount) return res.status(404).json({ error: "Account not found" });
+    if (connAccount.platform === "tiktok") {
+      await disconnectTikTokAccount(req.userId, connAccount.platform_account_id);
+    } else {
+      await supabaseAdmin.from("connected_accounts").delete().eq("id", req.params.id).eq("user_id", req.userId);
     }
-
-    const { error } = await supabaseAdmin
-      .from("connected_accounts")
-      .delete()
-      .eq("id", req.params.id)
-      .eq("user_id", req.userId);
-
-    if (error) throw error;
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -863,7 +837,7 @@ async function syncInstagramInsightsForUser(userId: string) {
       profile_views_daily: 0,
       website_clicks_daily: 0,
       raw_response: accountInfo
-    }, { onConflict: "user_id,platform,snapshot_date" });
+    }, { onConflict: "user_id,platform,platform_account_id,snapshot_date" });
 
   if (dailyErr) console.error("[V3 Insights Sync] account_insights_daily upsert failed:", dailyErr.message);
 
@@ -1236,36 +1210,10 @@ apiV3Router.get("/cron/sync-instagram-insights", async (req: any, res) => {
 
 apiV3Router.get("/cron/sync-tiktok-insights", async (req: any, res) => {
   const cronSecret = process.env.CRON_SECRET || "local_secret";
-  const authHeader = req.headers.authorization;
-  if (!authHeader || authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: "Unauthorized cron execution." });
-  }
-
-  console.log("[V3 Cron Insights] Starting background tiktok insights sync...");
+  if (req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized cron execution." });
+  // DNVB: budgeted fleet sync, oldest accounts first (same as /api/tiktok/cron/sync)
   try {
-    const { data: conns, error } = await supabaseAdmin
-      .from("social_connections")
-      .select("user_id")
-      .eq("platform", "tiktok")
-      .eq("is_active", true);
-
-    if (error) throw error;
-
-    let syncedCount = 0;
-    let failedCount = 0;
-
-    for (const conn of (conns || [])) {
-      try {
-        await syncTikTokInsightsForUser(conn.user_id);
-        syncedCount++;
-        await new Promise(r => setTimeout(r, 200));
-      } catch (err: any) {
-        console.error(`[V3 Cron Insights] Failed for user ${conn.user_id}:`, err.message);
-        failedCount++;
-      }
-    }
-
-    res.json({ success: true, synced_count: syncedCount, failed_count: failedCount });
+    res.json({ success: true, ...(await syncDueTikTokAccounts({ maxAccounts: 150 })) });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

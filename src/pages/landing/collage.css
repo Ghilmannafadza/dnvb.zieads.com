@@ -82,7 +82,7 @@
   right: -10%;
   top: -20%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(242, 101, 34, 0.35), transparent 65%);
+  background: radial-gradient(circle, rgba(232, 71, 140, 0.35), transparent 65%);
 }
 @keyframes zcShine { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 /* warm tint so stock photos sit inside the brand palette */
@@ -90,7 +90,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(242, 101, 34, 0) 50%, rgba(242, 101, 34, 0.14) 100%);
+  background: linear-gradient(180deg, rgba(232, 71, 140, 0) 50%, rgba(232, 71, 140, 0.14) 100%);
   pointer-events: none;
 }
 
@@ -136,7 +136,7 @@
 .landing-page .zc-chip small { display: block; font-size: 11px; font-weight: 500; color: #8a8a8a; }
 .landing-page .zc-chip strong { display: block; font-size: 15px; }
 @keyframes zcBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-.landing-page .zc-chip-ico { width: 30px; height: 30px; border-radius: 10px; background: #f26522; color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.landing-page .zc-chip-ico { width: 30px; height: 30px; border-radius: 10px; background: #E8478C; color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .landing-page .zc-chip-stack { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .landing-page .zc-chip-stack .zc-chip:nth-child(2) { animation-delay: -2s; margin-left: 18%; }
 .landing-page .zc-chip-stack .zc-chip:nth-child(3) { animation-delay: -4s; margin-left: 6%; }
@@ -183,19 +183,19 @@
 }
 .landing-page .zt-tab:hover { color: #111; }
 .landing-page .zt-tab.is-active { background: #111; color: #fff; }
-.landing-page .zt-tab-progress { position: absolute; left: 0; bottom: 0; height: 2px; background: #f26522; width: 0; }
+.landing-page .zt-tab-progress { position: absolute; left: 0; bottom: 0; height: 2px; background: #E8478C; width: 0; }
 .landing-page .zt-tab.is-active .zt-tab-progress { animation: ztProgress var(--zt-ms, 6000ms) linear forwards; }
 .landing-page .zt-tour.is-paused .zt-tab.is-active .zt-tab-progress { animation-play-state: paused; }
 @keyframes ztProgress { to { width: 100%; } }
 
 .landing-page .zt-stage { display: grid; grid-template-columns: 0.8fr 2fr; gap: clamp(20px, 3vw, 48px); align-items: center; }
 .landing-page .zt-copy { animation: ztIn 0.6s var(--zc-ease, cubic-bezier(0.2, 0.7, 0.2, 1)) both; }
-.landing-page .zt-copy .zt-eyebrow { font-size: 12px !important; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #f26522; }
+.landing-page .zt-copy .zt-eyebrow { font-size: 12px !important; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #E8478C; }
 .landing-page .zt-copy h3 { font-size: clamp(22px, 2.2vw, 30px) !important; line-height: 1.15 !important; letter-spacing: -0.02em !important; margin: 10px 0 12px; }
 .landing-page .zt-copy p { font-size: 15px; line-height: 1.7; color: #505050; margin: 0 0 18px; }
 .landing-page .zt-points { list-style: none; padding: 0; margin: 0 0 22px; display: flex; flex-direction: column; gap: 8px; }
 .landing-page .zt-points li { display: flex; gap: 8px; font-size: 14px; color: #111; }
-.landing-page .zt-points li svg { color: #f26522; flex-shrink: 0; margin-top: 3px; }
+.landing-page .zt-points li svg { color: #E8478C; flex-shrink: 0; margin-top: 3px; }
 @keyframes ztIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 .landing-page .zt-screen { position: relative; perspective: 1600px; }
@@ -207,7 +207,7 @@
 .landing-page .zt-screen .zc-shot { box-shadow: 0 50px 100px rgba(17, 17, 17, 0.18), 0 0 0 1px rgba(17, 17, 17, 0.06); }
 .landing-page .zt-screen .zc-shot-view img { animation: ztShot 0.7s var(--zc-ease, cubic-bezier(0.2, 0.7, 0.2, 1)) both; }
 @keyframes ztShot { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
-.landing-page .zt-glow { position: absolute; z-index: -1; inset: 10% 8% -6%; border-radius: 40px; background: radial-gradient(60% 60% at 50% 60%, rgba(242, 101, 34, 0.35), transparent 70%); filter: blur(30px); }
+.landing-page .zt-glow { position: absolute; z-index: -1; inset: 10% 8% -6%; border-radius: 40px; background: radial-gradient(60% 60% at 50% 60%, rgba(232, 71, 140, 0.35), transparent 70%); filter: blur(30px); }
 .landing-page .zt-float { position: absolute; z-index: 3; }
 .landing-page .zt-float-a { left: -3%; bottom: 12%; }
 .landing-page .zt-float-b { right: -2%; top: 18%; }

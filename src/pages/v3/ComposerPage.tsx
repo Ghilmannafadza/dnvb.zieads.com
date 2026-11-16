@@ -463,6 +463,11 @@ export default function ComposerPage() {
   const [draftNote, setDraftNote] = useState('');
   const demo = useDemoMode();
   const [connections, setConnections] = useState<any[]>([]);
+  // DNVB: fleet info (group, label, avatar) per TikTok account, keyed by open_id
+  const [fleetInfo, setFleetInfo] = useState<Record<string, { group: string | null; label: string | null; avatar_url: string }>>({});
+  const [acctQuery, setAcctQuery] = useState('');
+  const [acctGroup, setAcctGroup] = useState('all');
+  const [staggerMin, setStaggerMin] = useState(0);
   const [mediaLibrary, setMediaLibrary] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -517,20 +522,30 @@ export default function ComposerPage() {
 
   const loadData = async () => {
     if (demo.isActive) {
-      setConnections(sampleConnections);
+      setConnections(sampleConnections.filter((c) => c.platform === 'tiktok'));
       setLoading(false);
       return;
     }
 
     try {
       const headers = await getAuthHeaders();
-      const [connRes, mediaRes] = await Promise.all([
+      const [connRes, mediaRes, fleetJ] = await Promise.all([
         fetch('/api/v3/connections', { headers }),
-        fetch('/api/v3/media/library', { headers })
+        fetch('/api/v3/media/library', { headers }),
+        api('/api/tiktok/accounts').catch(() => ({ accounts: [] })),
       ]);
 
       const connJ = await connRes.json();
-      if (connJ.success) setConnections(connJ.data.filter((c: any) => c.platform !== 'meta_ads' && c.platform !== 'google_ads' && c.platform !== 'tiktok_ads'));
+      // DNVB: TikTok accounts only
+      if (connJ.success) {
+        const list = connJ.data.filter((c: any) => c.platform === 'tiktok' && c.is_active !== false);
+        setConnections(list);
+        const wanted = (searchParams.get('accounts') || '').split(',').filter(Boolean);
+        if (wanted.length) setSelectedAccounts(list.filter((c: any) => wanted.includes(c.id) || wanted.includes(c.platform_account_id)).map((c: any) => c.id));
+      }
+      const info: Record<string, { group: string | null; label: string | null; avatar_url: string }> = {};
+      (fleetJ.accounts || []).forEach((a: any) => (info[a.open_id] = { group: a.group, label: a.label, avatar_url: a.avatar_url }));
+      setFleetInfo(info);
 
       const mediaJ = await mediaRes.json();
       if (mediaJ.success) {
@@ -623,6 +638,14 @@ export default function ComposerPage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const groupList = [...new Set(Object.values(fleetInfo).map((f) => f.group).filter(Boolean))].sort() as string[];
+  const visibleAccounts = connections.filter((c) => {
+    const info = fleetInfo[c.platform_account_id];
+    if (acctGroup !== 'all' && info?.group !== acctGroup) return false;
+    const n = acctQuery.trim().toLowerCase().replace(/^@/, '');
+    return !n || [c.account_handle, info?.label, info?.group].some((v) => (v || '').toLowerCase().replace(/^@/, '').includes(n));
+  });
 
   const handleAccountToggle = (id: string) => {
     setSelectedAccounts(prev => 
@@ -728,7 +751,7 @@ export default function ComposerPage() {
   // TikTok creator info: nickname, allowed privacy levels and interaction settings
   useEffect(() => {
     if (!hasTikTok || tiktokCreator || demo.isActive) return;
-    api('/api/v3/tiktok/creator-info')
+    api(`/api/v3/tiktok/creator-info?account_id=${encodeURIComponent(selectedAccounts[0] || '')}`)
       .then((j) => setTiktokCreator(j.creator || {}))
       .catch(() => setTiktokCreator({}));
   }, [hasTikTok, tiktokCreator, demo.isActive]);
@@ -794,6 +817,7 @@ export default function ComposerPage() {
           media_attachments: mediaAttachments,
           mode: scheduleType,
           scheduled_for: scheduleType === 'schedule' ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : undefined,
+          stagger_minutes: scheduleType === 'schedule' && selectedAccounts.length > 1 ? staggerMin : undefined,
         },
       });
       if (editingDraft) {
@@ -952,26 +976,51 @@ export default function ComposerPage() {
                   </span>
                 </div>
               ) : (
-                <div className="zco-platforms">
-                  {connections.map((c, idx) => {
-                    const isSelected = selectedAccounts.includes(c.id);
-                    const meta = platformMeta(c.platform);
-                    return (
-                      <button
-                        type="button"
-                        key={c.id}
-                        onClick={() => handleAccountToggle(c.id)}
-                        aria-pressed={isSelected}
-                        className={`zd-chip is-accent zco-pchip ${isSelected ? 'is-active' : ''}`}
-                        style={{ animationDelay: `${idx * 50}ms` }}
-                      >
-                        <span className="zco-picon" style={{ background: meta.color }}>{meta.icon}</span>
-                        <span className="zco-handle">{c.account_handle}</span>
-                        <span className="zco-check"><Check size={14} /></span>
+                <>
+                  {/* DNVB: 100+ accounts, so the picker has search, group filter and select all */}
+                  <div className="zco-acct-tools">
+                    <input className="zd-input zco-acct-search" value={acctQuery} onChange={(e) => setAcctQuery(e.target.value)} placeholder={`Search ${connections.length} accounts`} aria-label="Search accounts" />
+                    {groupList.length > 0 && (
+                      <select className="zd-select zco-acct-group" value={acctGroup} onChange={(e) => setAcctGroup(e.target.value)} aria-label="Group">
+                        <option value="all">All groups</option>
+                        {groupList.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    )}
+                    <button type="button" className="zd-link" onClick={() => setSelectedAccounts((prev) => [...new Set([...prev, ...visibleAccounts.map((c) => c.id)])])}>
+                      Select {visibleAccounts.length === connections.length ? 'all' : `these ${visibleAccounts.length}`}
+                    </button>
+                    {selectedAccounts.length > 0 && (
+                      <button type="button" className="zd-link zd-link-muted" onClick={() => setSelectedAccounts([])}>
+                        Clear
                       </button>
-                    );
-                  })}
-                </div>
+                    )}
+                  </div>
+                  <div className="zco-platforms zco-platforms-many">
+                    {visibleAccounts.map((c, idx) => {
+                      const isSelected = selectedAccounts.includes(c.id);
+                      const meta = platformMeta(c.platform);
+                      const info = fleetInfo[c.platform_account_id];
+                      return (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => handleAccountToggle(c.id)}
+                          aria-pressed={isSelected}
+                          className={`zd-chip is-accent zco-pchip ${isSelected ? 'is-active' : ''}`}
+                          style={{ animationDelay: `${Math.min(idx, 20) * 25}ms` }}
+                          title={info?.group ? `${c.account_handle} · ${info.group}` : c.account_handle}
+                        >
+                          <span className="zco-picon" style={{ background: meta.color }}>{meta.icon}</span>
+                          <span className="zco-handle">{info?.label || c.account_handle}</span>
+                          <span className="zco-check"><Check size={14} /></span>
+                        </button>
+                      );
+                    })}
+                    {!visibleAccounts.length && <span className="zco-acct-none">No account matches.</span>}
+                  </div>
+                </>
               )}
             </Card>
 
@@ -1001,7 +1050,7 @@ export default function ComposerPage() {
                           onClick={() => setActiveTab(id)}
                           className={`zd-chip ${activeTab === id ? 'is-active' : ''}`}
                         >
-                          {conn?.platform.toUpperCase()}
+                          {fleetInfo[conn?.platform_account_id]?.label || conn?.account_handle || conn?.platform}
                           {hasOverride && <span className="zco-dot" />}
                         </button>
                       );
@@ -1375,6 +1424,20 @@ export default function ComposerPage() {
                       value={scheduleTime}
                       onChange={e => setScheduleTime(e.target.value)}
                     />
+                    {selectedAccounts.length > 1 && (
+                      <label className="zco-stagger">
+                        <span>Spread over {selectedAccounts.length} accounts</span>
+                        <select className="zd-select" value={staggerMin} onChange={(e) => setStaggerMin(Number(e.target.value))}>
+                          <option value={0}>All at the same time</option>
+                          <option value={2}>2 minutes apart</option>
+                          <option value={5}>5 minutes apart</option>
+                          <option value={10}>10 minutes apart</option>
+                          <option value={15}>15 minutes apart</option>
+                          <option value={30}>30 minutes apart</option>
+                          <option value={60}>1 hour apart</option>
+                        </select>
+                      </label>
+                    )}
                   </div>
                 )}
               </div>
@@ -1388,7 +1451,7 @@ export default function ComposerPage() {
                   onChange={e => setPublishMethod(e.target.value as any)}
                 >
                   <option value="direct_api">Publish automatically (official API)</option>
-                  <option value="manual_reminder">Send me a reminder in ZieAds to post it</option>
+                  <option value="manual_reminder">Send me a reminder to post it myself</option>
                 </select>
               </div>
             </Card>

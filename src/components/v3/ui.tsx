@@ -1,7 +1,7 @@
 /*
   ZieAds dashboard UI kit (V0.3)
   Same visual language as the AI Agent page and the landing page:
-  system font, clean white, glass cards, orange #F26522, soft motion.
+  system font, clean white, glass cards, orange #E8478C, soft motion.
   Styles live in ./dash.css (imported once by V3Layout).
 */
 import React, { CSSProperties, ReactNode, useEffect, useRef, useState } from 'react';
